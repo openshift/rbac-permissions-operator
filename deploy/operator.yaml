@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbac-permissions-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rbac-permissions-operator
+  template:
+    metadata:
+      labels:
+        name: rbac-permissions-operator
+    spec:
+      serviceAccountName: rbac-permissions-operator
+      containers:
+        - name: rbac-permissions-operator
+          # Replace this with the built image name
+          image: REPLACE_IMAGE
+          command:
+          - rbac-permissions-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "rbac-permissions-operator"
