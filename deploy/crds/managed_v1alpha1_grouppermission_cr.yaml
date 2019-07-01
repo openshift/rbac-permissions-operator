@@ -1,0 +1,7 @@
+apiVersion: managed.openshift.io/v1alpha1
+kind: GroupPermission
+metadata:
+  name: example-grouppermission
+spec:
+  # Add fields here
+  size: 3
