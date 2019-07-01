@@ -67,10 +67,46 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCa
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "GroupPermissionSpec defines the desired state of GroupPermission",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"groupName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the Group granted permissions by the operator",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clusterPermissions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of permissions applied at Cluster scope",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission"),
+									},
+								},
+							},
+						},
+					},
+					"permissions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of permissions applied at Namespace scope",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"groupName"},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission", "github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"},
 	}
 }
 
@@ -79,9 +115,32 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.Reference
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "GroupPermissionStatus defines the observed state of GroupPermission",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of conditions for the CR",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"),
+									},
+								},
+							},
+						},
+					},
+					"state": {
+						SchemaProps: spec.SchemaProps{
+							Description: "State that this condition represents",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"state"},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"},
 	}
 }

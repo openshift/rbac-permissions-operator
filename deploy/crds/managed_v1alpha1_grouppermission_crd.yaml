@@ -28,8 +28,84 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            clusterPermissions:
+              description: List of permissions applied at Cluster scope
+              items:
+                properties:
+                  clusterRoleName:
+                    description: Name of ClusterRole to bind to the Group as a ClusterRoleBinding
+                    type: string
+                required:
+                - clusterRoleName
+                type: object
+              type: array
+            groupName:
+              description: Name of the Group granted permissions by the operator
+              type: string
+            permissions:
+              description: List of permissions applied at Namespace scope
+              items:
+                properties:
+                  allowFirst:
+                    description: Flag to indicate if "allow" regex is applied first
+                      If 'true' order is Allow then Deny, Else order is Deny then
+                      Allow
+                    type: boolean
+                  clusterRoleName:
+                    description: ClusterRoleName to bind to the Group as a RoleBindings
+                      in allowed Namespaces
+                    type: string
+                  namespacesAllowedRegex:
+                    description: NamespacesAllowedRegex representing allowed Namespaces
+                    type: string
+                  namespacesDeniedRegex:
+                    description: NamespacesDeniedRegex representing denied Namespaces
+                    type: string
+                required:
+                - clusterRoleName
+                - allowFirst
+                type: object
+              type: array
+          required:
+          - groupName
           type: object
         status:
+          properties:
+            conditions:
+              description: List of conditions for the CR
+              items:
+                properties:
+                  clusterRoleName:
+                    description: ClusterRoleName in which this condition is true
+                    type: string
+                  lastTransitionTime:
+                    description: LastTransitionTime is the last time this condition
+                      was active for the CR
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message related to the condition
+                    type: string
+                  state:
+                    description: State that this condition represents
+                    type: string
+                  status:
+                    description: Flag to indicate if condition status is currently
+                      active
+                    type: boolean
+                required:
+                - lastTransitionTime
+                - clusterRoleName
+                - status
+                - state
+                type: object
+              type: array
+            state:
+              description: State that this condition represents
+              type: string
+          required:
+          - state
           type: object
   version: v1alpha1
   versions:
