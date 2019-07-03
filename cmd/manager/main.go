@@ -10,8 +10,8 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/sam-nguyen7/rbac-permissions-operator/rbac-permissions-operator/pkg/apis"
-	"github.com/sam-nguyen7/rbac-permissions-operator/rbac-permissions-operator/pkg/controller"
+	"github.com/openshift/rbac-permissions-operator/pkg/apis"
+	"github.com/openshift/rbac-permissions-operator/pkg/controller"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"

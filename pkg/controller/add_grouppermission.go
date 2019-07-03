@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/sam-nguyen7/rbac-permissions-operator/pkg/controller/grouppermission"
+	"github.com/openshift/rbac-permissions-operator/pkg/controller/grouppermission"
 )
 
 func init() {

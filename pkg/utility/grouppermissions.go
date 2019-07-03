@@ -15,7 +15,7 @@
 package utility
 
 import (
-	api "github.com/openshift/dedicated-admin-operator/pkg/apis/managed/v1alpha1"
+	api "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
