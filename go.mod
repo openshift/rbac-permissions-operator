@@ -1,4 +1,4 @@
-module github.com/sam-nguyen7/rbac-permissions-operator/rbac-permissions-operator
+module github.com/openshift/rbac-permissions-operator/rbac-permissions-operator
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.4.9 // indirect

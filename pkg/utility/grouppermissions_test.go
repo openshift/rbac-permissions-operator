@@ -17,7 +17,7 @@ package utility
 import (
 	"testing"
 
-	api "github.com/openshift/dedicated-admin-operator/pkg/apis/managed/v1alpha1"
+	api "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 )
 
 func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {

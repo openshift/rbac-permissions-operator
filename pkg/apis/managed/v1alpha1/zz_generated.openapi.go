@@ -13,9 +13,9 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermission":       schema_pkg_apis_managed_v1alpha1_GroupPermission(ref),
-		"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec":   schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref),
-		"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus": schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref),
+		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermission":       schema_pkg_apis_managed_v1alpha1_GroupPermission(ref),
+		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec":   schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref),
+		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus": schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref),
 	}
 }
 
@@ -46,19 +46,19 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermission(ref common.ReferenceCallba
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec"),
+							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus"),
+							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec", "github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec", "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -82,7 +82,7 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission"),
+										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission"),
 									},
 								},
 							},
@@ -95,7 +95,7 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"),
+										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"),
 									},
 								},
 							},
@@ -106,7 +106,7 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission", "github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"},
+			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.ClusterPermission", "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"},
 	}
 }
 
@@ -123,7 +123,7 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"),
+										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"),
 									},
 								},
 							},
@@ -141,6 +141,6 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"},
+			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"},
 	}
 }

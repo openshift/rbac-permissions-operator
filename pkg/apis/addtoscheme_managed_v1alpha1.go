@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/sam-nguyen7/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 )
 
 func init() {
