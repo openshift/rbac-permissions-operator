@@ -17,5 +17,5 @@ package config
 const (
 	OperatorConfigMapName string = "rbac-permissions-operator"
 	OperatorName          string = "rbac-permissions-operator"
-	OperatorNamespace     string = "rbac-permissions-operator"
+	OperatorNamespace     string = "openshift-rbac-permissions-operator"
 )
