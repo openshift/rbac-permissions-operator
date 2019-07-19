@@ -2,16 +2,15 @@ package grouppermission
 
 import (
 	"context"
+	"strings"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,16 +50,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner GroupPermission
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &managedv1alpha1.GroupPermission{},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -77,8 +66,6 @@ type ReconcileGroupPermission struct {
 
 // Reconcile reads that state of the cluster for a GroupPermission object and makes changes based on the state read
 // and what is in the GroupPermission.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
@@ -100,54 +87,169 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
-
-	// Set GroupPermission instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
+	// get list of clusterRole on k8s
+	clusterRoleList := &v1.ClusterRoleList{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, clusterRoleList)
+	if err != nil {
+		// error reading the object - requeue the request
+		reqLogger.Error(err, "Failed to get clusterRoleList")
 		return reconcile.Result{}, err
 	}
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+	// if crClusterRoleNameList returns true with values in there
+	crClusterRoleNameList := populateCrClusterRoleNames(instance, clusterRoleList)
+	for _, crClusterRoleName := range crClusterRoleNameList {
+
+		// helper func to update the condition of the GroupPermission object
+		instance := updateCondition(instance, crClusterRoleName+" for clusterPermission does not exist", crClusterRoleName, true, "Failed")
+		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
+			reqLogger.Error(err, "Failed to update condition.")
 			return reconcile.Result{}, err
 		}
+	}
 
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
+	// get a list of clusterRoleBinding from k8s cluster list
+	clusterRoleBindingList := &v1.ClusterRoleBindingList{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, clusterRoleBindingList)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	// build a clusterRoleBindingNameList which consists of clusterRoleName-groupName
+	crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
+
+	// check ClusterRoleBindingName
+	populateCrClusterRoleBindingNameList := populateClusterRoleBindingNames(crClusterRoleBindingNameList, clusterRoleBindingList)
+	// loop through crClusterRoleBindingNameList
+	// make a newClusterRoleBinding for each one of them
+	// so newClusterRoleBinding should take in that name
+	for _, clusterRoleBindingName := range populateCrClusterRoleBindingNameList {
+
+		// get the clusterRoleName by spliting the clusterRoleBindng name
+		clusterRBName := strings.Split(clusterRoleBindingName, "-")
+		clusterRoleName := clusterRBName[0]
+		groupName := clusterRBName[1]
+
+		// create a new clusterRoleBinding on cluster
+		newCRB := newClusterRoleBinding(clusterRoleName, groupName)
+		err := r.client.Create(context.TODO(), newCRB)
+		if err != nil {
+			// calls on helper function to update the condition of the groupPermission object
+			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, "Failed")
+			err = r.client.Status().Update(context.TODO(), instance)
+			if err != nil {
+				reqLogger.Error(err, "Failed to update condition.")
+				return reconcile.Result{}, err
+			}
+			reqLogger.Error(err, "Failed to create clusterRoleBinding")
+			return reconcile.Result{}, err
+		}
+		// helper func to update condition of groupPermission object
+		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, "Created")
+		err = r.client.Status().Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition.")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *managedv1alpha1.GroupPermission) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
-	}
-	return &corev1.Pod{
+// newClusterRoleBinding creates and returns ClusterRoleBinding
+func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBinding {
+	return &v1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
+			Name: clusterRoleName + "-" + groupName,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
+		Subjects: []v1.Subject{
+			{
+				Kind: "Group",
+				Name: groupName,
 			},
 		},
+		RoleRef: v1.RoleRef{
+			Kind: "ClusterRole",
+			Name: clusterRoleName,
+		},
 	}
+}
+
+// populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
+// returns true if it exist, or false and list of ClusterRoleName that does not exist
+func populateCrClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
+	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
+	crClusterRoleNames := groupPermission.Spec.ClusterPermissions
+
+	// items is list of clusterRole on k8s
+	onClusterItems := clusterRoleList.Items
+
+	var crClusterRoleNameList []string
+
+	// for every cluster role names on cluster, loop through all crClusterRoleNames, if it doesn't exist then append
+	for _, i := range onClusterItems {
+		//name := i.Name
+		for _, a := range crClusterRoleNames {
+			clusterRoleName := a.ClusterRoleName
+			if i.Name != clusterRoleName {
+				crClusterRoleNameList = append(crClusterRoleNameList, clusterRoleName)
+			}
+		}
+	}
+
+	return crClusterRoleNameList
+}
+
+// populateClusterRoleBindingNames to see if ClusterRoleBinding exists in k8s ClusterRoleBindlingList
+// returns bool
+func populateClusterRoleBindingNames(clusterRoleBindingName []string, clusterRoleBindingList *v1.ClusterRoleBindingList) []string {
+	var crClusterRoleBindingList []string
+
+	// get ClusterRoleBindingList
+	onClusterItems := clusterRoleBindingList.Items
+
+	for _, i := range onClusterItems {
+		for _, a := range clusterRoleBindingName {
+			if a != i.Name {
+				crClusterRoleBindingList = append(crClusterRoleBindingList, a)
+			}
+		}
+	}
+
+	return crClusterRoleBindingList
+}
+
+// buildClusterRoleBindingCRList which consists of clusterRoleName and groupName
+func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.GroupPermission) []string {
+	var clusterRoleBindingNameList []string
+
+	// get instance of GroupPermission
+	for _, a := range clusterPermission.Spec.ClusterPermissions {
+
+		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a.ClusterRoleName+"-"+clusterPermission.Spec.GroupName)
+	}
+
+	return clusterRoleBindingNameList
+}
+
+// update the condition of GroupPermission
+func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state string) *managedv1alpha1.GroupPermission {
+	groupPermissionConditions := groupPermission.Status.Conditions
+
+	// make a new condition
+	newCondition := managedv1alpha1.Condition{
+		LastTransitionTime: metav1.Now(),
+		ClusterRoleName:    clusterRoleName,
+		Message:            message,
+		Status:             status,
+		State:              state,
+	}
+
+	// append new condition back to the conditions array
+	groupPermission.Status.Conditions = append(groupPermissionConditions, newCondition)
+
+	return groupPermission
 }
