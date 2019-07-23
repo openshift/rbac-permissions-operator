@@ -14,16 +14,10 @@ type GroupPermissionSpec struct {
 	GroupName string `json:"groupName"`
 	// List of permissions applied at Cluster scope
 	// +optional
-	ClusterPermissions []ClusterPermission `json:"clusterPermissions,omitempty"`
+	ClusterPermissions []string `json:"clusterPermissions,omitempty"`
 	// List of permissions applied at Namespace scope
 	// +optional
 	Permissions []Permission `json:"permissions,omitempty"`
-}
-
-// ClusterPermission defines a ClusterRole that is bound to the Group
-type ClusterPermission struct {
-	// Name of ClusterRole to bind to the Group as a ClusterRoleBinding
-	ClusterRoleName string `json:"clusterRoleName"`
 }
 
 // Permission deines a Role that is bound to the Group
@@ -61,7 +55,7 @@ type Condition struct {
 	// Flag to indicate if condition status is currently active
 	Status bool `json:"status"`
 	// State that this condition represents
-	State string `json:"state"`
+	State GroupPermissionState `json:"state"`
 }
 
 // GroupPermissionState defines various states a GroupPermission CR can be in
@@ -70,7 +64,7 @@ type GroupPermissionState string
 const (
 	// GroupPermissionCreated const for Created status
 	GroupPermissionCreated GroupPermissionState = "Created"
-	// GroupPermissionCreated const for Failed status
+	// GroupPermissionFailed const for Failed status
 	GroupPermissionFailed GroupPermissionState = "Failed"
 )
 

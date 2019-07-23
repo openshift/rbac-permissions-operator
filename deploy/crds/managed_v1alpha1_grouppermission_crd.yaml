@@ -32,13 +32,7 @@ spec:
             clusterPermissions:
               description: List of permissions applied at Cluster scope
               items:
-                properties:
-                  clusterRoleName:
-                    description: Name of ClusterRole to bind to the Group as a ClusterRoleBinding
-                    type: string
-                required:
-                - clusterRoleName
-                type: object
+                type: string
               type: array
             groupName:
               description: Name of the Group granted permissions by the operator

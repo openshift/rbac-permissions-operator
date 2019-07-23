@@ -24,12 +24,8 @@ func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {
 	var groupPermissions = []api.GroupPermission{
 		{
 			Spec: api.GroupPermissionSpec{
-				GroupName: "sre-admins",
-				ClusterPermissions: []api.ClusterPermission{
-					{
-						ClusterRoleName: "sre-admins-cluster",
-					},
-				},
+				GroupName:          "sre-admins",
+				ClusterPermissions: []string{"sre-admins-cluster"},
 				Permissions: []api.Permission{
 					{
 						ClusterRoleName:        "sre-admins-project",
@@ -53,8 +49,8 @@ func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {
 			found    string
 		}{
 			{"Group.Name", groupPermission.Spec.GroupName, clusterRoleBinding.Subjects[0].Name},
-			{"ClusterRole.Name", groupPermission.Spec.ClusterPermissions[0].ClusterRoleName, clusterRoleBinding.RoleRef.Name},
-			{"ClusterRoleBinding.Name", groupPermission.Spec.GroupName + "-" + groupPermission.Spec.ClusterPermissions[0].ClusterRoleName, clusterRoleBinding.ObjectMeta.Name},
+			{"ClusterRole.Name", groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.RoleRef.Name},
+			{"ClusterRoleBinding.Name", groupPermission.Spec.GroupName + "-" + groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.ObjectMeta.Name},
 		}
 
 		for _, test := range tests {
