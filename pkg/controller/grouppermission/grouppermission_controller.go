@@ -137,7 +137,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// calls on helper function to update the condition of the groupPermission object
-			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, "Failed")
+			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -147,7 +147,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, err
 		}
 		// helper func to update condition of groupPermission object
-		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, "Created")
+		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.GroupPermissionCreated)
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
@@ -193,9 +193,8 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission
 	for _, i := range onClusterItems {
 		//name := i.Name
 		for _, a := range crClusterRoleNames {
-			clusterRoleName := a.ClusterRoleName
-			if i.Name != clusterRoleName {
-				crClusterRoleNameList = append(crClusterRoleNameList, clusterRoleName)
+			if i.Name != a {
+				crClusterRoleNameList = append(crClusterRoleNameList, a)
 			}
 		}
 	}
@@ -229,14 +228,14 @@ func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.GroupPermi
 	// get instance of GroupPermission
 	for _, a := range clusterPermission.Spec.ClusterPermissions {
 
-		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a.ClusterRoleName+"-"+clusterPermission.Spec.GroupName)
+		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a+"-"+clusterPermission.Spec.GroupName)
 	}
 
 	return clusterRoleBindingNameList
 }
 
 // update the condition of GroupPermission
-func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state string) *managedv1alpha1.GroupPermission {
+func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.GroupPermissionState) *managedv1alpha1.GroupPermission {
 	groupPermissionConditions := groupPermission.Status.Conditions
 
 	// make a new condition

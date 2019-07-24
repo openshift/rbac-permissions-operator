@@ -35,7 +35,7 @@ func GetClusterRoleBindingsForGroupPermissions(groupPermissions []api.GroupPermi
 		for _, clusterPermission := range groupPermission.Spec.ClusterPermissions {
 			crb := rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: groupPermission.Spec.GroupName + "-" + clusterPermission.ClusterRoleName,
+					Name: groupPermission.Spec.GroupName + "-" + clusterPermission,
 				},
 				Subjects: []rbacv1.Subject{
 					{
@@ -47,7 +47,7 @@ func GetClusterRoleBindingsForGroupPermissions(groupPermissions []api.GroupPermi
 				RoleRef: rbacv1.RoleRef{
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "ClusterRole",
-					Name:     clusterPermission.ClusterRoleName,
+					Name:     clusterPermission,
 				},
 			}
 			output = append(output, crb)
