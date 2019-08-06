@@ -203,21 +203,22 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission
 }
 
 // populateClusterRoleBindingNames to see if ClusterRoleBinding exists in k8s ClusterRoleBindlingList
-// returns bool
-func populateClusterRoleBindingNames(clusterRoleBindingName []string, clusterRoleBindingList *v1.ClusterRoleBindingList) []string {
+// returns a slice of clusterRoleBindingNames that exists in CR but not in clusterRoleBindingList
+func populateClusterRoleBindingNames(clusterRoleBindingNames []string, clusterRoleBindingList *v1.ClusterRoleBindingList) []string {
 	var crClusterRoleBindingList []string
+	var found bool
 
-	// get ClusterRoleBindingList
-	onClusterItems := clusterRoleBindingList.Items
-
-	for _, i := range onClusterItems {
-		for _, a := range clusterRoleBindingName {
-			if a != i.Name {
-				crClusterRoleBindingList = append(crClusterRoleBindingList, a)
+	for _, crbName := range clusterRoleBindingNames {
+		for _, crBinding := range clusterRoleBindingList.Items {
+			if crbName == crBinding.Name {
+				found = true
 			}
 		}
+		if !found {
+			crClusterRoleBindingList = append(crClusterRoleBindingList, crbName)
+		}
+		found = false
 	}
-
 	return crClusterRoleBindingList
 }
 
