@@ -89,9 +89,9 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 
 	// get list of clusterRole on k8s
 	clusterRoleList := &v1.ClusterRoleList{}
-	err = r.client.Get(context.TODO(), request.NamespacedName, clusterRoleList)
+	opts := client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, clusterRoleList)
 	if err != nil {
-		// error reading the object - requeue the request
 		reqLogger.Error(err, "Failed to get clusterRoleList")
 		return reconcile.Result{}, err
 	}
@@ -111,7 +111,8 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 
 	// get a list of clusterRoleBinding from k8s cluster list
 	clusterRoleBindingList := &v1.ClusterRoleBindingList{}
-	err = r.client.Get(context.TODO(), request.NamespacedName, clusterRoleBindingList)
+	opts = client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, clusterRoleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
