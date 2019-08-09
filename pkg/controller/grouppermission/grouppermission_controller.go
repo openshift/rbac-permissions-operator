@@ -96,7 +96,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// if crClusterRoleNameList returns true with values in there
+	// if crClusterRoleNameList returns list of clusterRoleNames
 	crClusterRoleNameList := populateCrClusterRoleNames(instance, clusterRoleList)
 	for _, crClusterRoleName := range crClusterRoleNameList {
 
@@ -180,7 +180,7 @@ func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBin
 }
 
 // populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
-// returns true if it exist, or false and list of ClusterRoleName that does not exist
+// returns list of ClusterRoleNames that do not exist
 func populateCrClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
 	crClusterRoleNames := groupPermission.Spec.ClusterPermissions
