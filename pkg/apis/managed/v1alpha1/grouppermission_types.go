@@ -20,7 +20,7 @@ type GroupPermissionSpec struct {
 	Permissions []Permission `json:"permissions,omitempty"`
 }
 
-// Permission deines a Role that is bound to the Group
+// Permission defines a Role that is bound to the Group
 // Allowed in specific Namespaces
 type Permission struct {
 	// ClusterRoleName to bind to the Group as a RoleBindings in allowed Namespaces
