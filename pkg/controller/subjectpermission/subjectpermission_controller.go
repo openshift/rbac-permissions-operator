@@ -3,11 +3,14 @@ package subjectpermission
 import (
 	"context"
 	"fmt"
+
+	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+
+	"regexp"
 	"strings"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
-
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,6 +174,47 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, nil
 	}
 
+	// for each permissions
+	// if clusterRoleName does not exists as clusterRole
+	// if no condition for clusterRoleName, create condition on status
+	permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(instance, clusterRoleList)
+	for _, permissionClusterRoleName := range permissionClusterRoleNameList {
+		// helper func to update the condition of the GroupPermission object
+		instance := updateCondition(instance, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, "Failed")
+		err = r.client.Status().Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition.")
+			return reconcile.Result{}, err
+		}
+	}
+
+	// get the Namespace instance
+	ns := &corev1.Namespace{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, ns)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Object not found, it can be transitioning to the final desired state
+			// e. g. deletion or creation still in progress. Return and retry again
+			reqLogger.Info("Object not ready")
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object
+		reqLogger.Info("Error Getting Namespace")
+		return reconcile.Result{}, err
+	}
+
+	// get the NamespaceList
+	nsList := &corev1.NamespaceList{}
+	opts = client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, nsList)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
+		return reconcile.Result{}, err
+	}
+
+	// compile list of allowed namespaces
+	// takes in all permissions, then list of namespace
+
 	return reconcile.Result{}, nil
 }
 
@@ -215,6 +259,23 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermissi
 	}
 
 	return crClusterRoleNameList
+}
+
+func populateCrPermissionClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
+	//permission ClusterRoleName
+	permissions := groupPermission.Spec.Permissions
+
+	var permissionClusterRoleNames []string
+
+	for _, i := range clusterRoleList.Items {
+		for _, a := range permissions {
+			if i.Name != a.ClusterRoleName {
+				permissionClusterRoleNames = append(permissionClusterRoleNames, a.ClusterRoleName)
+			}
+		}
+	}
+
+	return permissionClusterRoleNames
 }
 
 // populateClusterRoleBindingNames to see if ClusterRoleBinding exists in k8s ClusterRoleBindlingList
@@ -267,4 +328,18 @@ func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message
 	groupPermission.Status.Conditions = append(groupPermissionConditions, newCondition)
 
 	return groupPermission
+}
+
+func allowedNamespacesList(namespaceAllowed string, namespaceList *corev1.NamespaceList) []string {
+
+	var matches []string
+
+	// for every namespace on the cluster
+	// check that against the allowedRegex in Permission
+	for _, namespace := range namespaceList.Items {
+		r := regexp.MustCompile(namespaceAllowed)
+		matches = r.FindAllString(namespace.Name, -1)
+	}
+
+	return matches
 }
