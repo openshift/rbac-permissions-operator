@@ -28,7 +28,6 @@ import (
 	// OSD metrics
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -126,10 +125,7 @@ func main() {
 	metricsServer := osdmetrics.NewBuilder().
 		WithPort(osdMetricsPort).
 		WithPath(osdMetricsPath).
-		WithCollectors([]prometheus.Collector{
-			localmetrics.RBACClusterwidePermissions,
-			localmetrics.RBACNamespacePermissions,
-		}).
+		WithCollectors(localmetrics.MetricsList).
 		WithServiceMonitor().
 		GetConfig()
 
