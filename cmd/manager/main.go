@@ -24,12 +24,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+
+	// OSD metrics
+	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
+	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Change below variables to serve metrics on different host or port.
 var (
 	metricsHost       = "0.0.0.0"
 	metricsPort int32 = 8383
+
+	osdMetricsPort = "8181"
+	osdMetricsPath = "/osdmetrics"
 )
 var log = logf.Log.WithName("cmd")
 
@@ -113,6 +121,20 @@ func main() {
 	_, err = metrics.ExposeMetricsPort(ctx, metricsPort)
 	if err != nil {
 		log.Info(err.Error())
+	}
+
+	metricsServer := osdmetrics.NewBuilder().
+		WithPort(osdMetricsPort).
+		WithPath(osdMetricsPath).
+		WithCollectors([]prometheus.Collector{
+			localmetrics.RBACClusterwidePermissions,
+			localmetrics.RBACNamespacePermissions,
+		}).
+		WithServiceMonitor().
+		GetConfig()
+
+	if err := osdmetrics.ConfigureMetrics(context.TODO(), *metricsServer); err != nil {
+		log.Error(err, "Failed to configure OSD metrics")
 	}
 
 	log.Info("Starting the Cmd.")
