@@ -153,6 +153,8 @@ github.com/openshift/dedicated-admin-operator v0.0.0-20190712141448-4ec9a766214e
 github.com/openshift/dedicated-admin-operator v0.0.0-20190712141448-4ec9a766214e/go.mod h1:U2SwxIShIQEz8pC/O5vnoZhwieI40Hf59+EBBQkeyG4=
 github.com/openshift/operator-custom-metrics v0.2.0 h1:ZWgOX+Yal+nQPxFnhce6k/G8E5k52mGr60EM8ieQQ8w=
 github.com/openshift/operator-custom-metrics v0.2.0/go.mod h1:WOncjPNo8dntchnwZZuSGw5rEwp9a2miTazA9G1oDnw=
+github.com/openshift/operator-custom-metrics v0.2.1 h1:eDajR7cA7s0fcPT4SpeI06xT9OfQn8azZd5073sjclY=
+github.com/openshift/operator-custom-metrics v0.2.1/go.mod h1:WOncjPNo8dntchnwZZuSGw5rEwp9a2miTazA9G1oDnw=
 github.com/openzipkin/zipkin-go v0.1.3/go.mod h1:NtoC/o8u3JlF1lSlyPNswIbeQH9bJTmOf0Erfk+hxe8=
 github.com/openzipkin/zipkin-go v0.1.6/go.mod h1:QgAqvLzwWbR/WpD4A3cGpPtJrZXNIiJc5AZX7/PBEpw=
 github.com/operator-framework/operator-sdk v0.8.1 h1:TDnWWkYpYuuo53ftRVEsAj0xy7IutkpiUlTsHqNeyiU=

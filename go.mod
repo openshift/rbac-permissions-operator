@@ -18,7 +18,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/openshift/dedicated-admin-operator v0.0.0-20190712141448-4ec9a766214e
-	github.com/openshift/operator-custom-metrics v0.2.0
+	github.com/openshift/operator-custom-metrics v0.2.1
 	github.com/operator-framework/operator-sdk v0.10.0
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
