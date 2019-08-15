@@ -63,7 +63,7 @@ gocheck: ## Lint code
 
 .PHONY: gobuild
 gobuild: gocheck gotest ## Build binary
-	${GOENV} go build ${GOFLAGS} -o ${BINFILE} ${MAINPACKAGE}
+	GO111MODULE=on ${GOENV} go build ${GOFLAGS} -o ${BINFILE} ${MAINPACKAGE}
 
 .PHONY: gotest
 gotest:
