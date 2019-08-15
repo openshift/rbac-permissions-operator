@@ -2,9 +2,12 @@ package grouppermission
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,6 +90,15 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
+	// The GroupPermission CR is about to be deleted, so we need to clean up the
+	// Prometheus metrics, otherwise there will be stale data exported (for CRs
+	// which no longer exist).
+	if instance.DeletionTimestamp != nil {
+		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for GroupPermission name='%s'", instance.ObjectMeta.GetName()))
+		localmetrics.DeletePrometheusMetric(instance)
+		return reconcile.Result{}, nil
+	}
+
 	// get list of clusterRole on k8s
 	clusterRoleList := &v1.ClusterRoleList{}
 	opts := client.ListOptions{Namespace: request.Namespace}
@@ -154,6 +166,8 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 			reqLogger.Error(err, "Failed to update condition.")
 			return reconcile.Result{}, err
 		}
+		// Add Prometheus metrics for this CR
+		localmetrics.AddPrometheusMetric(instance)
 		return reconcile.Result{}, nil
 	}
 
