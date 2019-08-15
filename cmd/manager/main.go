@@ -127,7 +127,7 @@ func main() {
 		WithPort(osdMetricsPort).
 		WithPath(osdMetricsPath).
 		WithCollectors(localmetrics.MetricsList).
-		WithServiceName(operatorconfig.OperatorName).
+		WithServiceName("localmetrics" + operatorconfig.OperatorName).
 		WithServiceMonitor().
 		GetConfig()
 
