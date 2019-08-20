@@ -1,5 +1,5 @@
 apiVersion: managed.openshift.io/v1alpha1
-kind: GroupPermission
+kind: SubjectPermission
 metadata:
   name: example-grouppermission
 spec:

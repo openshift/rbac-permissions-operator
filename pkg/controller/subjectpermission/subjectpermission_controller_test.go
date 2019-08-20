@@ -16,25 +16,25 @@ import (
 )
 
 // create fake client to mock API calls
-func newTestReconciler() *ReconcileGroupPermission {
-	return &ReconcileGroupPermission{
+func newTestReconciler() *ReconcileSubjectPermission {
+	return &ReconcileSubjectPermission{
 		client: fake.NewFakeClient(),
 		scheme: scheme.Scheme,
 	}
 }
 
-// create a GroupPermission object so we can resigter it in the fake client
-func mockGroupPermission() *v1alpha1.GroupPermission {
-	return &v1alpha1.GroupPermission{
+// create a SubjectPermission object so we can resigter it in the fake client
+func mockSubjectPermission() *v1alpha1.SubjectPermission {
+	return &v1alpha1.SubjectPermission{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testGroupPermission",
+			Name:      "testSubjectPermission",
 			Namespace: "rbac-permissions-operator",
 		},
-		Spec: v1alpha1.GroupPermissionSpec{
-			GroupName:          "exampleGroupName",
+		Spec: v1alpha1.SubjectPermissionSpec{
+			SubjectName:          "exampleSubjectName",
 			ClusterPermissions: []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"},
 		},
-		Status: v1alpha1.GroupPermissionStatus{
+		Status: v1alpha1.SubjectPermissionStatus{
 			Conditions: []v1alpha1.Condition{
 				{
 					LastTransitionTime: metav1.Now(),
@@ -66,12 +66,12 @@ func mockClusterRole() *rbacv1.ClusterRole {
 func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "exampleClusterRoleName" + "-" + "exampleGroupName",
+			Name: "exampleClusterRoleName" + "-" + "exampleSubjectName",
 		},
 		Subjects: []rbacv1.Subject{
 			{
 				Kind: "Group",
-				Name: "exampleGroupName",
+				Name: "exampleSubjectName",
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -82,8 +82,8 @@ func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 }
 
 // TestClusterRoleNamesAvailableInCrButNotInCluster tests the populateCrClusterRoleNames function
-// given: a GroupPermissionSpec, an empty k8s ClusterRoleList
-// expected: []string with results from GroupPermissionSpec that is NOT on ClusterRoleList
+// given: a SubjectPermissionSpec, an empty k8s ClusterRoleList
+// expected: []string with results from SubjectPermissionSpec that is NOT on ClusterRoleList
 func TestClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
 	ctx := context.TODO()
 	reconciler := newTestReconciler()
@@ -112,9 +112,9 @@ func TestClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
 	}
 
 	// here is the function we are testing
-	// since our mockGroupPermission() contains 2 ClusterRoleNames
+	// since our mockSubjectPermission() contains 2 ClusterRoleNames
 	// that are not on the k8s ClusterRoleList, we expect those to be populated
-	tmpList := populateCrClusterRoleNames(mockGroupPermission(), list)
+	tmpList := populateCrClusterRoleNames(mockSubjectPermission(), list)
 
 	// this is the desired result
 	resultList := []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"}
@@ -192,14 +192,14 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 	}
 
 	// creates a groupPermission object
-	nerr := reconciler.client.Create(ctx, mockGroupPermission())
+	nerr := reconciler.client.Create(ctx, mockSubjectPermission())
 	if nerr != nil {
-		t.Errorf("Couldn't create required GroupPermission object for test: %s", nerr)
+		t.Errorf("Couldn't create required SubjectPermission object for test: %s", nerr)
 	}
 
 	// this is the function we are testing
-	// it should return mockClusterRoleBinding() which contains the same clusterRoleName and GroupName
-	newClusterRoleBinding := newClusterRoleBinding("exampleClusterRoleName", "exampleGroupName")
+	// it should return mockClusterRoleBinding() which contains the same clusterRoleName and SubjectName
+	newClusterRoleBinding := newClusterRoleBinding("exampleClusterRoleName", "exampleSubjectName")
 
 	// compare the two clusterRoleBinding. They should be exactly the same
 	// if not our test fails, log out the difference
@@ -210,15 +210,15 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 }
 
 // TestValidClusterRoleBindingListCreation tests buildClusterRoleBindingCrList function
-// given: GroupPermission Spec
+// given: SubjectPermission Spec
 // expected: slice of ClusterRoleBindingNames which consist of clusterrolename-groupname
 func TestValidClusterRoleBindingListCreation(t *testing.T) {
 
 	// this is the function we are testing by using a mock
-	buildList := buildClusterRoleBindingCRList(mockGroupPermission())
+	buildList := buildClusterRoleBindingCRList(mockSubjectPermission())
 
 	// this is the expected outcome
-	result := []string{"exampleClusterRoleName-exampleGroupName", "exampleClusterRoleNameTwo-exampleGroupName"}
+	result := []string{"exampleClusterRoleName-exampleSubjectName", "exampleClusterRoleNameTwo-exampleSubjectName"}
 
 	// check to see if given is equal to expected
 	if len(buildList) != len(result) {
@@ -231,12 +231,12 @@ func TestValidClusterRoleBindingListCreation(t *testing.T) {
 	}
 }
 
-// TestSuccesfulConditionUpdateForGroupPermission tests the updatecondition function.
-// given: GroupPermission object, message, clusterRoleName, status, and state
-// expected: an updated GroupPermission object with the correct updated fields
-func TestSuccesfulConditionUpdateForGroupPermission(t *testing.T) {
+// TestSuccesfulConditionUpdateForSubjectPermission tests the updatecondition function.
+// given: SubjectPermission object, message, clusterRoleName, status, and state
+// expected: an updated SubjectPermission object with the correct updated fields
+func TestSuccesfulConditionUpdateForSubjectPermission(t *testing.T) {
 	// this is the function we are testing with a mock
-	buildCondition := updateCondition(mockGroupPermission(), "testMessage", "testClusterRoleName", false, "testState")
+	buildCondition := updateCondition(mockSubjectPermission(), "testMessage", "testClusterRoleName", false, "testState")
 
 	// make a map of the result that we want to check mock against
 	testMap := make(map[int]v1alpha1.Condition)

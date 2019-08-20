@@ -5,8 +5,8 @@ metadata:
 spec:
   group: managed.openshift.io
   names:
-    kind: GroupPermission
-    listKind: GroupPermissionList
+    kind: SubjectPermission
+    listKind: SubjectPermissionList
     plural: grouppermissions
     singular: grouppermission
   scope: Namespaced

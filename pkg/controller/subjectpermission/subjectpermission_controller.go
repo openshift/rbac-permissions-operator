@@ -28,7 +28,7 @@ var log = logf.Log.WithName("controller_grouppermission")
 * business logic.  Delete these comments after modifying this file.*
  */
 
-// Add creates a new GroupPermission Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new SubjectPermission Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -36,7 +36,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileGroupPermission{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileSubjectPermission{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -47,8 +47,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource GroupPermission
-	err = c.Watch(&source.Kind{Type: &managedv1alpha1.GroupPermission{}}, &handler.EnqueueRequestForObject{})
+	// Watch for changes to primary resource SubjectPermission
+	err = c.Watch(&source.Kind{Type: &managedv1alpha1.SubjectPermission{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -56,28 +56,28 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// blank assignment to verify that ReconcileGroupPermission implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileGroupPermission{}
+// blank assignment to verify that ReconcileSubjectPermission implements reconcile.Reconciler
+var _ reconcile.Reconciler = &ReconcileSubjectPermission{}
 
-// ReconcileGroupPermission reconciles a GroupPermission object
-type ReconcileGroupPermission struct {
+// ReconcileSubjectPermission reconciles a SubjectPermission object
+type ReconcileSubjectPermission struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a GroupPermission object and makes changes based on the state read
-// and what is in the GroupPermission.Spec
+// Reconcile reads that state of the cluster for a SubjectPermission object and makes changes based on the state read
+// and what is in the SubjectPermission.Spec
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling GroupPermission")
+	reqLogger.Info("Reconciling SubjectPermission")
 
-	// Fetch the GroupPermission instance
-	instance := &managedv1alpha1.GroupPermission{}
+	// Fetch the SubjectPermission instance
+	instance := &managedv1alpha1.SubjectPermission{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -90,11 +90,11 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, err
 	}
 
-	// The GroupPermission CR is about to be deleted, so we need to clean up the
+	// The SubjectPermission CR is about to be deleted, so we need to clean up the
 	// Prometheus metrics, otherwise there will be stale data exported (for CRs
 	// which no longer exist).
 	if instance.DeletionTimestamp != nil {
-		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for GroupPermission name='%s'", instance.ObjectMeta.GetName()))
+		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.ObjectMeta.GetName()))
 		localmetrics.DeletePrometheusMetric(instance)
 		return reconcile.Result{}, nil
 	}
@@ -112,7 +112,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 	crClusterRoleNameList := populateCrClusterRoleNames(instance, clusterRoleList)
 	for _, crClusterRoleName := range crClusterRoleNameList {
 
-		// helper func to update the condition of the GroupPermission object
+		// helper func to update the condition of the SubjectPermission object
 		instance := updateCondition(instance, crClusterRoleName+" for clusterPermission does not exist", crClusterRoleName, true, "Failed")
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
@@ -150,7 +150,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// calls on helper function to update the condition of the groupPermission object
-			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
+			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -160,7 +160,7 @@ func (r *ReconcileGroupPermission) Reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, err
 		}
 		// helper func to update condition of groupPermission object
-		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.GroupPermissionCreated)
+		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
@@ -195,7 +195,7 @@ func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBin
 
 // populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
 // returns list of ClusterRoleNames that do not exist
-func populateCrClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
 	crClusterRoleNames := groupPermission.Spec.ClusterPermissions
 
@@ -238,20 +238,20 @@ func populateClusterRoleBindingNames(clusterRoleBindingNames []string, clusterRo
 }
 
 // buildClusterRoleBindingCRList which consists of clusterRoleName and groupName
-func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.GroupPermission) []string {
+func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPermission) []string {
 	var clusterRoleBindingNameList []string
 
-	// get instance of GroupPermission
+	// get instance of SubjectPermission
 	for _, a := range clusterPermission.Spec.ClusterPermissions {
 
-		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a+"-"+clusterPermission.Spec.GroupName)
+		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a+"-"+clusterPermission.Spec.SubjectName)
 	}
 
 	return clusterRoleBindingNameList
 }
 
-// update the condition of GroupPermission
-func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.GroupPermissionState) *managedv1alpha1.GroupPermission {
+// update the condition of SubjectPermission
+func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
 	groupPermissionConditions := groupPermission.Status.Conditions
 
 	// make a new condition
