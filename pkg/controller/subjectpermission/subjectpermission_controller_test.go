@@ -82,6 +82,12 @@ func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	}
 }
 
+// TestPermissionClusterRoleNamesAvailableInCrButNotInCluster tests the populateCrPermissionClusterRoleNames
+// given:
+func TestPermissionClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
+
+}
+
 // TestClusterRoleNamesAvailableInCrButNotInCluster tests the populateCrClusterRoleNames function
 // given: a SubjectPermissionSpec, an empty k8s ClusterRoleList
 // expected: []string with results from SubjectPermissionSpec that is NOT on ClusterRoleList
