@@ -200,7 +200,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		// if clusterRoleName does not exists as clusterRole
 		// if no condition for clusterRoleName, create condition on status
 		// then continue to next permission
-		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(grouppermission, clusterRoleList)
+		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(&grouppermission, clusterRoleList)
 
 		for _, permissionClusterRoleName := range permissionClusterRoleNameList {
 			// TODO: this might cause memory issue - we are passing a pointer and then returning a pointer to the same object??
@@ -241,8 +241,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		for _, permission := range grouppermission.Spec.Permissions {
 			// check regex against cluster namespaces, return slice of allowed namespaces
 			sl := allowedNamespacesList(permission.NamespacesAllowedRegex, nsList)
-			// remove ns from safeList found in denied regex
-			safeListed := removeNameSpacesDeniedFromSafeList(permission.NamespacesDeniedRegex, sl, nsList)
+
+			safeListed := safeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)
 
 			//build roleBinding from safeList
 			for _, ns := range safeListed {
@@ -296,34 +296,22 @@ func allowedNamespacesList(namespacesAllowedRegex string, namespaceList *corev1.
 	return matches
 }
 
-func removeNameSpacesDeniedFromSafeList(namespacesDeniedRegex string, safeList []string, namespaceList *corev1.NamespaceList) []string {
-	var deniedNamespaces []string
-	for _, namespace := range namespaceList.Items {
+func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) []string {
+	var updatedSafeList []string
+
+	// for every namespace on SafeList
+	// check that against deniedRegex
+	for _, namespace := range safeList {
 		rp := regexp.MustCompile(namespacesDeniedRegex)
 
-		found := rp.MatchString(namespace.Name)
-		if found {
-			deniedNamespaces = append(deniedNamespaces, namespace.Name)
+		found := rp.MatchString(namespace)
+		// if it does not match then append
+		if !found {
+			updatedSafeList = append(updatedSafeList, namespace)
 		}
 	}
 
-	//compare safeList with deniedNamespaces
-	// turn deniedNamespaces into map
-	var m map[string]bool
-	m = make(map[string]bool, len(deniedNamespaces))
-	for _, namespace := range deniedNamespaces {
-		m[namespace] = false
-	}
-	//append ns from safeList that don't exist in map
-	var diff []string
-	for _, ns := range safeList {
-		if _, ok := m[ns]; !ok {
-			diff = append(diff, ns)
-			continue
-		}
-		m[ns] = true
-	}
-	return diff
+	return updatedSafeList
 
 }
 
@@ -350,13 +338,13 @@ func newClusterRoleBinding(clusterRoleName, subjectName string) *v1.ClusterRoleB
 func newRoleBinding(clusterRoleName, groupName, namespace string) *v1.RoleBinding {
 	return &v1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleName + "-" + groupName,
+			Name:      clusterRoleName + "-" + groupName,
+			Namespace: namespace,
 		},
 		Subjects: []v1.Subject{
 			{
-				Kind:      "Group",
-				Name:      groupName,
-				Namespace: namespace,
+				Kind: "Group",
+				Name: groupName,
 			},
 		},
 		RoleRef: v1.RoleRef{
@@ -390,7 +378,9 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermissi
 	return crClusterRoleNameList
 }
 
-func populateCrPermissionClusterRoleNames(groupPermission managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
+// populateCrPermissionClusterRoleNames to see if clusterRoleName exists in permission
+// returns list of ClusterRoleNames in permissions that do not exist
+func populateCrPermissionClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	//permission ClusterRoleName
 	permissions := groupPermission.Spec.Permissions
 
