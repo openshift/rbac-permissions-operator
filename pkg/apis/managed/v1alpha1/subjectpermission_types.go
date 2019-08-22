@@ -10,8 +10,10 @@ import (
 // SubjectPermissionSpec defines the desired state of SubjectPermission
 // +k8s:openapi-gen=true
 type SubjectPermissionSpec struct {
-	// Name of the Group granted permissions by the operator
-	SubjectName string `json:"groupName"`
+	// Kind of the Subject that is being granted permissions by the operator
+	SubjectKind string `json: "SubjectKind"`
+	// Name of the Subject granted permissions by the operator
+	SubjectName string `json:"SubjectName"`
 	// List of permissions applied at Cluster scope
 	// +optional
 	ClusterPermissions []string `json:"clusterPermissions,omitempty"`
