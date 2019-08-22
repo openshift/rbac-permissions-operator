@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/rbac-permissions-operator/pkg/apis"
 	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +34,11 @@ func mockGroupPermission() *v1alpha1.GroupPermission {
 		Spec: v1alpha1.GroupPermissionSpec{
 			GroupName:          "exampleGroupName",
 			ClusterPermissions: []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"},
+			Permissions: []v1alpha1.Permission{
+				{
+					ClusterRoleName: "exampleClusterRoleName",
+				},
+			},
 		},
 		Status: v1alpha1.GroupPermissionStatus{
 			Conditions: []v1alpha1.Condition{
@@ -81,9 +87,138 @@ func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	}
 }
 
-// TestPermissionClusterRoleNamesAvailableInCrButNotInCluster tests the populateCrPermissionClusterRoleNames
-// given:
-func TestPermissionClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
+func mockRoleBinding() *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "examplePermissionClusterRoleName" + "-" + "exampleGroupName",
+			Namespace: "examplenamespace",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: "Group",
+				Name: "exampleGroupName",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "examplePermissionClusterRoleName",
+		},
+	}
+}
+
+// TestValidAllowedNamespacesList tests the allowedNamespacesList
+// given: namespacesAllowedRegex, NamespaceList
+// expected: slice of namespaces on the cluster that matches namespaceAllowedRegex
+func TestValidAllowedNamespacesList(t *testing.T) {
+
+	// mock namespacelist
+	namespaceList := &corev1.NamespaceList{
+		Items: []corev1.Namespace{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "openshift.admin-stuff",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default.whatver",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "openshift.readers",
+				},
+			},
+		},
+	}
+
+	namespacesAllowedRegex := "openshift.*"
+
+	allowedList := allowedNamespacesList(namespacesAllowedRegex, namespaceList)
+
+	expectedList := []string{"openshift.admin-stuff", "openshift.readers"}
+
+	if len(allowedList) != len(expectedList) {
+		t.Errorf("the length does not match")
+	}
+
+	// checks allowedList against expectedList, if they are not the same
+	// our test fails
+	for i, v := range expectedList {
+		if v != allowedList[i] {
+			t.Errorf("got %s, want %s", allowedList, expectedList)
+		}
+	}
+}
+
+// tests the removeNameSpacesDeniedFromSafeList function
+// given: namespacesDeniedRegex, safeList, NamespaceList
+// expected: slice of updated safeList with namespaces that matches deniedRegex removed
+func TestRemoveNamespacesDeniedFromSafeList(t *testing.T) {
+	initSafeList := []string{"openshift.admin-stuff", "openshift.readers", "default.whatever"}
+
+	// deniedRegex to be passed in
+	namespacesDeniedRegex := "default.*"
+
+	updatedSafelist := safeListAfterDeniedRegex(namespacesDeniedRegex, initSafeList)
+
+	expectedSafeList := []string{"openshift.admin-stuff", "openshift.readers"}
+
+	if len(updatedSafelist) != len(expectedSafeList) {
+		t.Errorf("the length does not match")
+	}
+
+	// checks updatedSafelist against expectedSafeList, if they are not the same
+	// our test fails
+	for i, v := range expectedSafeList {
+		if v != updatedSafelist[i] {
+			t.Errorf("got %s, want %s", updatedSafelist, expectedSafeList)
+		}
+	}
+}
+
+func TestPopulateCrPermissionClusterRoleNames(t *testing.T) {
+	ctx := context.TODO()
+	reconciler := newTestReconciler()
+
+	// Register operator types with the runtime scheme.
+	s := scheme.Scheme
+
+	//Add api to scheme
+	if err := apis.AddToScheme(s); err != nil {
+		t.Errorf("Unable to add route scheme: (%v)", err)
+	}
+
+	err := reconciler.client.Create(ctx, mockClusterRole())
+	if err != nil {
+		t.Errorf("Couldn't create clusterRole for test: %s", err)
+	}
+
+	// get empty ClusterRoleList and give it a namespace
+	list := &rbacv1.ClusterRoleList{}
+	opts := client.ListOptions{Namespace: ""}
+
+	// create clusterRoleList{}
+	err = reconciler.client.List(ctx, &opts, list)
+	if err != nil {
+		t.Errorf("Couldn't get clusterRoleList for test: %s", err)
+	}
+
+	tmpList := populateCrPermissionClusterRoleNames(mockGroupPermission(), list)
+
+	resultList := []string{"exampleClusterRoleName"}
+
+	if len(tmpList) != len(resultList) { // check against an actual number??
+		t.Errorf("the length does not match")
+	}
+
+	// checks resultList against tmpList, if they are not the same
+	// our test fails
+	for i, v := range resultList {
+		if v != tmpList[i] {
+			t.Errorf("got %s, want %s", tmpList, resultList)
+		}
+	}
 
 }
 
@@ -208,8 +343,34 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 	newClusterRoleBinding := newClusterRoleBinding("exampleClusterRoleName", "exampleGroupName")
 
 	// compare the two clusterRoleBinding. They should be exactly the same
-	// if not our test fails, log out the difference
+	// if not our test fails, return false
 	diff := reflect.DeepEqual(*newClusterRoleBinding, *mockClusterRoleBinding())
+	if !diff {
+		t.Error(diff)
+	}
+}
+
+// TestCreateValidRoleBinding tests the newRoleBinding function
+// given: clusterRoleName, groupName, namespace
+// expected: a RoleBinding that contains the clusterRoleName, groupName, and namespace given
+func TestCreateValidRoleBinding(t *testing.T) {
+	ctx := context.TODO()
+	reconciler := newTestReconciler()
+	s := scheme.Scheme
+	if err := apis.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add apis scheme: %s", err)
+	}
+
+	nerr := reconciler.client.Create(ctx, mockGroupPermission())
+	if nerr != nil {
+		t.Errorf("Couldn't create required GroupPermission object for test: %s", nerr)
+	}
+
+	newRoleBinding := newRoleBinding("examplePermissionClusterRoleName", "exampleGroupName", "examplenamespace")
+	t.Log(newRoleBinding)
+	t.Log(mockRoleBinding())
+
+	diff := reflect.DeepEqual(*newRoleBinding, *mockRoleBinding())
 	if !diff {
 		t.Error(diff)
 	}
