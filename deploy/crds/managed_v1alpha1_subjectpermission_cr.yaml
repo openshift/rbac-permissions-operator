@@ -1,7 +1,7 @@
 apiVersion: managed.openshift.io/v1alpha1
 kind: SubjectPermission
 metadata:
-  name: example-grouppermission
+  name: example-subjectpermission
 spec:
   # Add fields here
   size: 3
