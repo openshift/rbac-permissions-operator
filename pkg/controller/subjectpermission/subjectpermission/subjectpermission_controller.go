@@ -1,4 +1,4 @@
-package grouppermission
+package subjectPermission
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_grouppermission")
+var log = logf.Log.WithName("controller_subjectpermission")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -42,7 +42,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("grouppermission-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("subjectPermission-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	// build a clusterRoleBindingNameList which consists of clusterRoleName-groupName
+	// build a clusterRoleBindingNameList which consists of clusterRoleName-subjectName
 	crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
 
 	// check ClusterRoleBindingName
@@ -143,13 +143,14 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		// get the clusterRoleName by spliting the clusterRoleBindng name
 		clusterRBName := strings.Split(clusterRoleBindingName, "-")
 		clusterRoleName := clusterRBName[0]
-		groupName := clusterRBName[1]
+		subjectName := clusterRBName[1]
+		subjectKind := clusterRBsubjectKind[2]
 
 		// create a new clusterRoleBinding on cluster
-		newCRB := newClusterRoleBinding(clusterRoleName, groupName)
+		newCRB := newClusterRoleBinding(clusterRoleName, subjectName, subjectKind)
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
-			// calls on helper function to update the condition of the groupPermission object
+			// calls on helper function to update the condition of the subjectPermission object
 			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
@@ -159,7 +160,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			reqLogger.Error(err, "Failed to create clusterRoleBinding")
 			return reconcile.Result{}, err
 		}
-		// helper func to update condition of groupPermission object
+		// helper func to update condition of subjectPermission object
 		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
@@ -175,15 +176,15 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 }
 
 // newClusterRoleBinding creates and returns ClusterRoleBinding
-func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBinding {
+func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind string) *v1.ClusterRoleBinding {
 	return &v1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleName + "-" + groupName,
+			Name: clusterRoleName + "-" + subjectName,
 		},
 		Subjects: []v1.Subject{
 			{
-				Kind: "Group",
-				Name: groupName,
+				Kind: subjectKind,
+				Name: subjectName,
 			},
 		},
 		RoleRef: v1.RoleRef{
@@ -195,9 +196,9 @@ func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBin
 
 // populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
 // returns list of ClusterRoleNames that do not exist
-func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
-	crClusterRoleNames := groupPermission.Spec.ClusterPermissions
+	crClusterRoleNames := subjectPermission.Spec.ClusterPermissions
 
 	// items is list of clusterRole on k8s
 	onClusterItems := clusterRoleList.Items
@@ -237,22 +238,22 @@ func populateClusterRoleBindingNames(clusterRoleBindingNames []string, clusterRo
 	return crClusterRoleBindingList
 }
 
-// buildClusterRoleBindingCRList which consists of clusterRoleName and groupName
+// buildClusterRoleBindingCRList which consists of clusterRoleName and subjectName
 func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPermission) []string {
 	var clusterRoleBindingNameList []string
 
 	// get instance of SubjectPermission
 	for _, a := range clusterPermission.Spec.ClusterPermissions {
 
-		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a+"-"+clusterPermission.Spec.SubjectName)
+		clusterRoleBindingNameList = append(clusterRoleBindingNameList, a+"-"+clusterPermission.Spec.SubjectName+"-"+clusterPermission.Spec.SubjectKind)
 	}
 
 	return clusterRoleBindingNameList
 }
 
 // update the condition of SubjectPermission
-func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
-	groupPermissionConditions := groupPermission.Status.Conditions
+func updateCondition(subjectPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
+	subjectPermissionConditions := subjectPermission.Status.Conditions
 
 	// make a new condition
 	newCondition := managedv1alpha1.Condition{
@@ -264,7 +265,7 @@ func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message
 	}
 
 	// append new condition back to the conditions array
-	groupPermission.Status.Conditions = append(groupPermissionConditions, newCondition)
+	subjectPermission.Status.Conditions = append(PermissionConditions, newCondition)
 
-	return groupPermission
+	return subjectPermission
 }

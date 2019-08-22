@@ -37,6 +37,9 @@ spec:
             subjectName:
               description: Name of the Subject granted permissions by the operator
               type: string
+            subjectKind:
+              description: Kind of the Subject granted permissions by the operator
+              type: string
             permissions:
               description: List of permissions applied at Namespace scope
               items:
@@ -62,7 +65,8 @@ spec:
                 type: object
               type: array
           required:
-          - groupName
+          - subjectName
+          - subjectKind
           type: object
         status:
           properties:
