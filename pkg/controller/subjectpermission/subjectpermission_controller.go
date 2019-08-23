@@ -145,9 +145,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// check ClusterRoleBindingName
 	populateCrClusterRoleBindingNameList := populateClusterRoleBindingNames(crClusterRoleBindingNameList, clusterRoleBindingList)
+
 	// loop through crClusterRoleBindingNameList
-	// make a newClusterRoleBinding for each one of them
-	// so newClusterRoleBinding should take in that name
 	for _, clusterRoleBindingName := range populateCrClusterRoleBindingNameList {
 
 		// get the clusterRoleName by spliting the clusterRoleBindng name
@@ -159,8 +158,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		newCRB := newClusterRoleBinding(clusterRoleName, subjectName)
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
-			// calls on helper function to update the condition of the groupPermission object
-			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+			// update the condition of the groupPermission object
+			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -196,15 +195,12 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 	// for each CR get the namespace and compare with regex
 	for _, grouppermission := range groupPermissionList.Items {
 
-		// for each permissions
-		// if clusterRoleName does not exists as clusterRole
-		// if no condition for clusterRoleName, create condition on status
-		// then continue to next permission
+		// slice of clusterRoleName that does not exists as a clusterRole
 		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(&grouppermission, clusterRoleList)
 
 		for _, permissionClusterRoleName := range permissionClusterRoleNameList {
-			// TODO: this might cause memory issue - we are passing a pointer and then returning a pointer to the same object??
-			updatedGroupPermission := updateCondition(&grouppermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, "Failed")
+			// update condition
+			updatedGroupPermission := updateCondition(&grouppermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), updatedGroupPermission)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -236,21 +232,21 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			return reconcile.Result{}, err
 		}
 
-		// compile list of ALLOWED namespaces
-		// takes in all permissions, then list of namespace
+		// loop through each permission of GroupPermission CR
 		for _, permission := range grouppermission.Spec.Permissions {
-			// check regex against cluster namespaces, return slice of allowed namespaces
+			// apply allow list
 			sl := allowedNamespacesList(permission.NamespacesAllowedRegex, nsList)
 
+			// apply deny list
 			safeListed := safeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)
 
-			//build roleBinding from safeList
+			// for each safelisted namespace
 			for _, ns := range safeListed {
-				//create roleBinding for each safelisted namespace
+				//create roleBinding
 				roleBinding := newRoleBinding(permission.ClusterRoleName, instance.Spec.GroupName, ns)
 				err := r.client.Create(context.TODO(), roleBinding)
 				if err != nil {
-					// calls on helper function to update the condition of the groupPermission object
+					// update the condition
 					permissionUpdatedCondition := updateCondition(&grouppermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
 					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 					if err != nil {
@@ -261,7 +257,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 					return reconcile.Result{}, err
 				}
 
-				// if all create RoleBinding was successful
+				// update condition
 				permissionUpdatedCondition := updateCondition(&grouppermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.GroupPermissionCreated)
 				err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 				if err != nil {
@@ -296,6 +292,8 @@ func allowedNamespacesList(namespacesAllowedRegex string, namespaceList *corev1.
 	return matches
 }
 
+// safeListAfterDeniedRegex takes in slice of allowedNamespaces
+// returns slice of namespaces after applying deny regex
 func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) []string {
 	var updatedSafeList []string
 
@@ -430,8 +428,14 @@ func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPer
 	return clusterRoleBindingNameList
 }
 
+<<<<<<< HEAD:pkg/controller/subjectpermission/subjectpermission_controller.go
 // update the condition of SubjectPermission
 func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
+=======
+// TODO: this might cause memory issue - we are passing a pointer and then returning a pointer to the same object??
+// update the condition of GroupPermission
+func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.GroupPermissionState) *managedv1alpha1.GroupPermission {
+>>>>>>> update comments:pkg/controller/grouppermission/grouppermission_controller.go
 	groupPermissionConditions := groupPermission.Status.Conditions
 
 	// make a new condition
