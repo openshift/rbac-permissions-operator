@@ -44,7 +44,7 @@ spec:
                       Allow
                     type: boolean
                   clusterRoleName:
-                    description: ClusterRoleName to bind to the Group as a RoleBindings
+                    description: ClusterRoleName to bind to the Subject as a RoleBindings
                       in allowed Namespaces
                     type: string
                   namespacesAllowedRegex:

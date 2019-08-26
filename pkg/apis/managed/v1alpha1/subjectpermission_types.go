@@ -22,10 +22,10 @@ type SubjectPermissionSpec struct {
 	Permissions []Permission `json:"permissions,omitempty"`
 }
 
-// Permission deines a Role that is bound to the Group
+// Permission deines a Role that is bound to the Subject 
 // Allowed in specific Namespaces
 type Permission struct {
-	// ClusterRoleName to bind to the Group as a RoleBindings in allowed Namespaces
+	// ClusterRoleName to bind to the Subject as a RoleBindings in allowed Namespaces
 	ClusterRoleName string `json:"clusterRoleName"`
 	// NamespacesAllowedRegex representing allowed Namespaces
 	NamespacesAllowedRegex string `json:"namespacesAllowedRegex,omitempty"`
