@@ -11,9 +11,9 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermission":       schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref),
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionSpec":   schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref),
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionStatus": schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermission":       schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermissionSpec":   schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermissionStatus": schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref),
 	}
 }
 
@@ -44,19 +44,19 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref common.ReferenceCall
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionSpec"),
+							Ref: ref("./pkg/apis/managed/v1alpha1.SubjectPermissionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionStatus"),
+							Ref: ref("./pkg/apis/managed/v1alpha1.SubjectPermissionStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionSpec", "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.SubjectPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"./pkg/apis/managed/v1alpha1.SubjectPermissionSpec", "./pkg/apis/managed/v1alpha1.SubjectPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -66,6 +66,13 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref common.Reference
 			SchemaProps: spec.SchemaProps{
 				Description: "SubjectPermissionSpec defines the desired state of SubjectPermission",
 				Properties: map[string]spec.Schema{
+					"subjectKind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind of the Subject that is being granted permissions by the operator",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"subjectName": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Name of the Subject granted permissions by the operator",
@@ -94,18 +101,18 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"),
+										Ref: ref("./pkg/apis/managed/v1alpha1.Permission"),
 									},
 								},
 							},
 						},
 					},
 				},
-				Required: []string{"subjectName"},
+				Required: []string{"subjectKind", "subjectName"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"},
+			"./pkg/apis/managed/v1alpha1.Permission"},
 	}
 }
 
@@ -122,7 +129,7 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"),
+										Ref: ref("./pkg/apis/managed/v1alpha1.Condition"),
 									},
 								},
 							},
@@ -140,6 +147,6 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"},
+			"./pkg/apis/managed/v1alpha1.Condition"},
 	}
 }

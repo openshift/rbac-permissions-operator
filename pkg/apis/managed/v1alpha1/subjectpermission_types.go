@@ -11,9 +11,9 @@ import (
 // +k8s:openapi-gen=true
 type SubjectPermissionSpec struct {
 	// Kind of the Subject that is being granted permissions by the operator
-	SubjectKind string `json:"SubjectKind"`
+	SubjectKind string `json:"subjectKind"`
 	// Name of the Subject granted permissions by the operator
-	SubjectName string `json:"SubjectName"`
+	SubjectName string `json:"subjectName"`
 	// List of permissions applied at Cluster scope
 	// +optional
 	ClusterPermissions []string `json:"clusterPermissions,omitempty"`

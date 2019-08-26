@@ -34,12 +34,6 @@ spec:
               items:
                 type: string
               type: array
-            subjectName:
-              description: Name of the Subject granted permissions by the operator
-              type: string
-            subjectKind:
-              description: Kind of the Subject granted permissions by the operator
-              type: string
             permissions:
               description: List of permissions applied at Namespace scope
               items:
@@ -50,7 +44,7 @@ spec:
                       Allow
                     type: boolean
                   clusterRoleName:
-                    description: ClusterRoleName to bind to the Subject as a RoleBindings
+                    description: ClusterRoleName to bind to the Group as a RoleBindings
                       in allowed Namespaces
                     type: string
                   namespacesAllowedRegex:
@@ -64,9 +58,16 @@ spec:
                 - allowFirst
                 type: object
               type: array
+            subjectKind:
+              description: Kind of the Subject that is being granted permissions by
+                the operator
+              type: string
+            subjectName:
+              description: Name of the Subject granted permissions by the operator
+              type: string
           required:
-          - subjectName
           - subjectKind
+          - subjectName
           type: object
         status:
           properties:
