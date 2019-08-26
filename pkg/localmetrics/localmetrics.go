@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	log = logf.Log.WithName("localmetrics_grouppermission")
+	log = logf.Log.WithName("localmetrics_subjectpermission")
 
 	// RBACClusterwidePermissions for cluster-wide permissions
 	RBACClusterwidePermissions = prometheus.NewGaugeVec(prometheus.GaugeOpts{

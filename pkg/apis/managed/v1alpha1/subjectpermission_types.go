@@ -11,7 +11,7 @@ import (
 // +k8s:openapi-gen=true
 type SubjectPermissionSpec struct {
 	// Kind of the Subject that is being granted permissions by the operator
-	SubjectKind string `json: "SubjectKind"`
+	SubjectKind string `json:"SubjectKind"`
 	// Name of the Subject granted permissions by the operator
 	SubjectName string `json:"SubjectName"`
 	// List of permissions applied at Cluster scope
@@ -72,7 +72,7 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// SubjectPermission is the Schema for the grouppermissions API
+// SubjectPermission is the Schema for the subjectpermissions API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 type SubjectPermission struct {

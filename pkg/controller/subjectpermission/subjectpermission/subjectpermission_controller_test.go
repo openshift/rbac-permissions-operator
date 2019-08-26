@@ -1,4 +1,4 @@
-package grouppermission
+package subjectpermission
 
 import (
 	"context"
@@ -177,8 +177,8 @@ func TestClusterRoleBindingsAvailableInCrButNotInCluster(t *testing.T) {
 }
 
 // TestCreateValidClusterRoleBinding tests the newClusterRoleBinding funtion
-// given: clusterRoleName, groupName
-// expected: a ClusterRoleBinding that contains the new clusterRoleName and groupName
+// given: clusterRoleName, subjectName
+// expected: a ClusterRoleBinding that contains the new clusterRoleName and subjectName
 func TestCreateValidClusterRoleBinding(t *testing.T) {
 	ctx := context.TODO()
 	reconciler := newTestReconciler()

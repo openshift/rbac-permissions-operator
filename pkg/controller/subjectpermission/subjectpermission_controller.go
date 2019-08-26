@@ -1,4 +1,4 @@
-package grouppermission
+package subjectpermission
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_grouppermission")
+var log = logf.Log.WithName("controller_subjectpermission")
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -42,7 +42,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("grouppermission-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("subjectpermission-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	// build a clusterRoleBindingNameList which consists of clusterRoleName-groupName
+	// build a clusterRoleBindingNameList which consists of clusterRoleName-subjectName
 	crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
 
 	// check ClusterRoleBindingName
@@ -143,10 +143,10 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		// get the clusterRoleName by spliting the clusterRoleBindng name
 		clusterRBName := strings.Split(clusterRoleBindingName, "-")
 		clusterRoleName := clusterRBName[0]
-		groupName := clusterRBName[1]
+		subjectName := clusterRBName[1]
 
 		// create a new clusterRoleBinding on cluster
-		newCRB := newClusterRoleBinding(clusterRoleName, groupName)
+		newCRB := newClusterRoleBinding(clusterRoleName, subjectName)
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// calls on helper function to update the condition of the groupPermission object
@@ -175,15 +175,15 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 }
 
 // newClusterRoleBinding creates and returns ClusterRoleBinding
-func newClusterRoleBinding(clusterRoleName, groupName string) *v1.ClusterRoleBinding {
+func newClusterRoleBinding(clusterRoleName, subjectName string) *v1.ClusterRoleBinding {
 	return &v1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleName + "-" + groupName,
+			Name: clusterRoleName + "-" + subjectName,
 		},
 		Subjects: []v1.Subject{
 			{
 				Kind: "Group",
-				Name: groupName,
+				Name: subjectName,
 			},
 		},
 		RoleRef: v1.RoleRef{
@@ -237,7 +237,7 @@ func populateClusterRoleBindingNames(clusterRoleBindingNames []string, clusterRo
 	return crClusterRoleBindingList
 }
 
-// buildClusterRoleBindingCRList which consists of clusterRoleName and groupName
+// buildClusterRoleBindingCRList which consists of clusterRoleName and subjectName
 func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPermission) []string {
 	var clusterRoleBindingNameList []string
 

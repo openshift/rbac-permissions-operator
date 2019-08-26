@@ -21,7 +21,7 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "SubjectPermission is the Schema for the grouppermissions API",
+				Description: "SubjectPermission is the Schema for the subjectpermissions API",
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -66,9 +66,9 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref common.Reference
 			SchemaProps: spec.SchemaProps{
 				Description: "SubjectPermissionSpec defines the desired state of SubjectPermission",
 				Properties: map[string]spec.Schema{
-					"groupName": {
+					"subjectName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the Group granted permissions by the operator",
+							Description: "Name of the Subject granted permissions by the operator",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -101,7 +101,7 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"groupName"},
+				Required: []string{"subjectName"},
 			},
 		},
 		Dependencies: []string{
