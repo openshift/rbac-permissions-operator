@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-  corev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
