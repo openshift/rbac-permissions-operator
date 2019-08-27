@@ -21,10 +21,10 @@ import (
 )
 
 func TestGetClusterRoleBindingsForSubjectPermissions(t *testing.T) {
-	var groupPermissions = []api.SubjectPermission{
+	var subjectPermissions = []api.SubjectPermission{
 		{
 			Spec: api.SubjectPermissionSpec{
-				SubjectName:          "sre-admins",
+				SubjectName:        "sre-admins",
 				ClusterPermissions: []string{"sre-admins-cluster"},
 				Permissions: []api.Permission{
 					{
@@ -37,10 +37,10 @@ func TestGetClusterRoleBindingsForSubjectPermissions(t *testing.T) {
 		},
 	}
 
-	clusterRoleBindings := GetClusterRoleBindingsForSubjectPermissions(groupPermissions)
+	clusterRoleBindings := GetClusterRoleBindingsForSubjectPermissions(subjectPermissions)
 
 	for x, clusterRoleBinding := range clusterRoleBindings {
-		groupPermission := groupPermissions[x]
+		subjectPermission := subjectPermissions[x]
 
 		// build table of tests to loop through
 		var tests = []struct {
@@ -48,9 +48,9 @@ func TestGetClusterRoleBindingsForSubjectPermissions(t *testing.T) {
 			expected string
 			found    string
 		}{
-			{"Group.Name", groupPermission.Spec.SubjectName, clusterRoleBinding.Subjects[0].Name},
-			{"ClusterRole.Name", groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.RoleRef.Name},
-			{"ClusterRoleBinding.Name", groupPermission.Spec.SubjectName + "-" + groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.ObjectMeta.Name},
+			{"Group.Name", subjectPermission.Spec.SubjectName, clusterRoleBinding.Subjects[0].Name},
+			{"ClusterRole.Name", subjectPermission.Spec.ClusterPermissions[0], clusterRoleBinding.RoleRef.Name},
+			{"ClusterRoleBinding.Name", subjectPermission.Spec.SubjectName + "-" + subjectPermission.Spec.ClusterPermissions[0], clusterRoleBinding.ObjectMeta.Name},
 		}
 
 		for _, test := range tests {

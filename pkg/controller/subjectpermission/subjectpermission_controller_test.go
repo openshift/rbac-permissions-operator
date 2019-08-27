@@ -31,7 +31,8 @@ func mockSubjectPermission() *v1alpha1.SubjectPermission {
 			Namespace: "rbac-permissions-operator",
 		},
 		Spec: v1alpha1.SubjectPermissionSpec{
-			SubjectName:          "exampleSubjectName",
+			SubjectName:        "exampleSubjectName",
+			SubjectKind:        "exampleSubjectKind",
 			ClusterPermissions: []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"},
 		},
 		Status: v1alpha1.SubjectPermissionStatus{
