@@ -182,24 +182,24 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// update GroupPermisison Cr when namepsace updates
 	// by looping through each groupPermission
-	groupPermissionList := &managedv1alpha1.SubjectPermissionList{}
+	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
 	opts = client.ListOptions{Namespace: request.Namespace}
-	err = r.client.List(context.TODO(), &opts, groupPermissionList)
+	err = r.client.List(context.TODO(), &opts, subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
 	}
 
 	// for each CR get the namespace and compare with regex
-	for _, grouppermission := range groupPermissionList.Items {
+	for _, subjectpermission := range subjectPermissionList.Items {
 
 		// slice of clusterRoleName that does not exists as a clusterRole
-		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(&grouppermission, clusterRoleList)
+		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(&subjectpermission, clusterRoleList)
 
 		for _, permissionClusterRoleName := range permissionClusterRoleNameList {
 			// update condition
-			updatedGroupPermission := updateCondition(&grouppermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
-			err = r.client.Status().Update(context.TODO(), updatedGroupPermission)
+			updatedSubjectPermission := updateCondition(&subjectpermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+			err = r.client.Status().Update(context.TODO(), updatedSubjectPermission)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
 				return reconcile.Result{}, err
@@ -231,7 +231,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		}
 
 		// loop through each permission of GroupPermission CR
-		for _, permission := range grouppermission.Spec.Permissions {
+		for _, permission := range subjectpermission.Spec.Permissions {
 			// apply allow list
 			sl := allowedNamespacesList(permission.NamespacesAllowedRegex, nsList)
 
@@ -245,7 +245,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				err := r.client.Create(context.TODO(), roleBinding)
 				if err != nil {
 					// update the condition
-					permissionUpdatedCondition := updateCondition(&grouppermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+					permissionUpdatedCondition := updateCondition(&subjectpermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 					if err != nil {
 						reqLogger.Error(err, "Failed to update condition.")
@@ -256,7 +256,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				}
 
 				// update condition
-				permissionUpdatedCondition := updateCondition(&grouppermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
+				permissionUpdatedCondition := updateCondition(&subjectpermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
 				err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 				if err != nil {
 					reqLogger.Error(err, "Failed to update condition.")
