@@ -73,7 +73,7 @@ func mockClusterRole() *rbacv1.ClusterRole {
 func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "exampleClusterRoleName-exampleGroupName",
+			Name: "exampleClusterRoleName-exampleSubjectName",
 		},
 		Subjects: []rbacv1.Subject{
 			{
@@ -205,7 +205,7 @@ func TestPopulateCrPermissionClusterRoleNames(t *testing.T) {
 		t.Errorf("Couldn't get clusterRoleList for test: %s", err)
 	}
 
-	tmpList := populateCrPermissionClusterRoleNames(mockGroupPermission(), list)
+	tmpList := populateCrPermissionClusterRoleNames(mockSubjectPermission(), list)
 
 	resultList := []string{"exampleClusterRoleName"}
 
@@ -341,7 +341,9 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 
 	// this is the function we are testing
 	// it should return mockClusterRoleBinding() which contains the same clusterRoleName and SubjectName
-	newClusterRoleBinding := newClusterRoleBinding("exampleClusterRoleName", "exampleSubjectName")
+	newClusterRoleBinding := newClusterRoleBinding("exampleClusterRoleName", "exampleSubjectName", "Group")
+	t.Log(newClusterRoleBinding)
+	t.Log(mockClusterRoleBinding())
 
 	// compare the two clusterRoleBinding. They should be exactly the same
 	// if not our test fails, return false

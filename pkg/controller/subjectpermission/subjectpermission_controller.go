@@ -153,7 +153,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		subjectName := clusterRBName[1]
 
 		// create a new clusterRoleBinding on cluster
-		newCRB := newClusterRoleBinding(clusterRoleName, subjectName)
+		newCRB := newClusterRoleBinding(clusterRoleName, subjectName, instance.Spec.SubjectKind)
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// update the condition of the groupPermission object
@@ -182,7 +182,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// update GroupPermisison Cr when namepsace updates
 	// by looping through each groupPermission
-	groupPermissionList := &managedv1alpha1.GroupPermissionList{}
+	groupPermissionList := &managedv1alpha1.SubjectPermissionList{}
 	opts = client.ListOptions{Namespace: request.Namespace}
 	err = r.client.List(context.TODO(), &opts, groupPermissionList)
 	if err != nil {
@@ -198,7 +198,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 		for _, permissionClusterRoleName := range permissionClusterRoleNameList {
 			// update condition
-			updatedGroupPermission := updateCondition(&grouppermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
+			updatedGroupPermission := updateCondition(&grouppermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), updatedGroupPermission)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -241,11 +241,11 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			// for each safelisted namespace
 			for _, ns := range safeListed {
 				//create roleBinding
-				roleBinding := newRoleBinding(permission.ClusterRoleName, instance.Spec.GroupName, ns)
+				roleBinding := newRoleBinding(permission.ClusterRoleName, instance.Spec.SubjectName, ns)
 				err := r.client.Create(context.TODO(), roleBinding)
 				if err != nil {
 					// update the condition
-					permissionUpdatedCondition := updateCondition(&grouppermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
+					permissionUpdatedCondition := updateCondition(&grouppermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 					if err != nil {
 						reqLogger.Error(err, "Failed to update condition.")
@@ -256,7 +256,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				}
 
 				// update condition
-				permissionUpdatedCondition := updateCondition(&grouppermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.GroupPermissionCreated)
+				permissionUpdatedCondition := updateCondition(&grouppermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
 				err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 				if err != nil {
 					reqLogger.Error(err, "Failed to update condition.")
@@ -312,14 +312,14 @@ func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) [
 }
 
 // newClusterRoleBinding creates and returns ClusterRoleBinding
-func newClusterRoleBinding(clusterRoleName, subjectName string) *v1.ClusterRoleBinding {
+func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind string) *v1.ClusterRoleBinding {
 	return &v1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterRoleName + "-" + subjectName,
 		},
 		Subjects: []v1.Subject{
 			{
-				Kind: "Group",
+				Kind: subjectKind,
 				Name: subjectName,
 			},
 		},
@@ -376,7 +376,7 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermissi
 
 // populateCrPermissionClusterRoleNames to see if clusterRoleName exists in permission
 // returns list of ClusterRoleNames in permissions that do not exist
-func populateCrPermissionClusterRoleNames(groupPermission *managedv1alpha1.GroupPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func populateCrPermissionClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	//permission ClusterRoleName
 	permissions := groupPermission.Spec.Permissions
 
