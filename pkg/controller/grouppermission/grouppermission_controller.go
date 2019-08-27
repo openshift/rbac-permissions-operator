@@ -2,13 +2,13 @@ package grouppermission
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
-	"fmt"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
