@@ -87,7 +87,7 @@ func mockClusterRoleBinding() *rbacv1.ClusterRoleBinding {
 	}
 }
 
-func mockRoleBinding() *rbacv1.RoleBinding {
+func expectedRoleBinding() *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "examplePermissionClusterRoleName" + "-" + "exampleGroupName",
@@ -354,23 +354,10 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 // given: clusterRoleName, groupName, namespace
 // expected: a RoleBinding that contains the clusterRoleName, groupName, and namespace given
 func TestCreateValidRoleBinding(t *testing.T) {
-	ctx := context.TODO()
-	reconciler := newTestReconciler()
-	s := scheme.Scheme
-	if err := apis.AddToScheme(s); err != nil {
-		t.Fatalf("Unable to add apis scheme: %s", err)
-	}
-
-	nerr := reconciler.client.Create(ctx, mockGroupPermission())
-	if nerr != nil {
-		t.Errorf("Couldn't create required GroupPermission object for test: %s", nerr)
-	}
 
 	newRoleBinding := newRoleBinding("examplePermissionClusterRoleName", "exampleGroupName", "examplenamespace")
-	t.Log(newRoleBinding)
-	t.Log(mockRoleBinding())
 
-	diff := reflect.DeepEqual(*newRoleBinding, *mockRoleBinding())
+	diff := reflect.DeepEqual(*newRoleBinding, *expectedRoleBinding())
 	if !diff {
 		t.Error(diff)
 	}
