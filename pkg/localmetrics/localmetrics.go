@@ -22,8 +22,8 @@ var (
 		Name: "rbac_permissions_operator_cluster_permission",
 		Help: "Configured permissions in the cluster-wide scope",
 	}, []string{
-		"group_name",
-		"group_permission_name",
+		"subject_name",
+		"subject_permission_name",
 		"cluster_permission_name",
 		"state",
 	})
@@ -33,8 +33,8 @@ var (
 		Name: "rbac_permissions_operator_namespace_permission",
 		Help: "Configured permissions in a per-namespace scope",
 	}, []string{
-		"group_name",
-		"group_permission_name",
+		"subject_name",
+		"subject_permission_name",
 		"permission_name",
 		"namespace_allow",
 		"namespace_deny",
@@ -68,8 +68,8 @@ func AddPrometheusMetric(gp *managedv1alpha1.SubjectPermission) {
 func addRBACClusterPermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 	for _, clusterPermissionName := range gp.Spec.ClusterPermissions {
 		RBACClusterwidePermissions.With(prometheus.Labels{
-			"group_name":              gp.Spec.SubjectName,
-			"group_permission_name":   gp.ObjectMeta.GetName(),
+			"subject_name":            gp.Spec.SubjectName,
+			"subject_permission_name": gp.ObjectMeta.GetName(),
 			"cluster_permission_name": clusterPermissionName,
 			"state":                   "1",
 		}).Set(1.0)
@@ -89,7 +89,7 @@ func deleteRBACClusterPermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 		)
 		// It's possible that we weren't able to delete the metric, so let's log a message to that effect.
 		if !r {
-			log.Info(fmt.Sprintf("Failed to delete GaugeVec labels: group_name='%s', group_permission_name='%s', cluster_permission='%s', state='1'",
+			log.Info(fmt.Sprintf("Failed to delete GaugeVec labels: subject_name='%s', subject_permission_name='%s', cluster_permission='%s', state='1'",
 				gp.Spec.SubjectName, gp.ObjectMeta.GetName(), clusterPermissionName))
 		}
 	}
@@ -101,13 +101,13 @@ func addRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 
 	for _, permission := range gp.Spec.Permissions {
 		RBACNamespacePermissions.With(prometheus.Labels{
-			"group_name":            gp.Spec.SubjectName,
-			"group_permission_name": gp.ObjectMeta.GetName(),
-			"cluster_role_name":     permission.ClusterRoleName,
-			"namespace_allow":       permission.NamespacesAllowedRegex,
-			"namespace_deny":        permission.NamespacesDeniedRegex,
-			"allow_first":           allowFirstToString(permission.AllowFirst),
-			"state":                 "1",
+			"subject_name":            gp.Spec.SubjectName,
+			"subject_permission_name": gp.ObjectMeta.GetName(),
+			"cluster_role_name":       permission.ClusterRoleName,
+			"namespace_allow":         permission.NamespacesAllowedRegex,
+			"namespace_deny":          permission.NamespacesDeniedRegex,
+			"allow_first":             allowFirstToString(permission.AllowFirst),
+			"state":                   "1",
 		}).Set(1.0)
 	}
 }
@@ -129,7 +129,7 @@ func deleteRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) 
 		)
 		// It's possible that we weren't able to delete the metric, so let's log a message to that effect.
 		if !r {
-			log.Info(fmt.Sprintf("Failed to delete GaugeVec labels: group_name='%s', group_permission_name='%s', cluster_permission='%s', state='1'",
+			log.Info(fmt.Sprintf("Failed to delete GaugeVec labels: subject_name='%s', subject_permission_name='%s', cluster_permission='%s', state='1'",
 				gp.Spec.SubjectName, gp.ObjectMeta.GetName(), permission.ClusterRoleName))
 		}
 	}
