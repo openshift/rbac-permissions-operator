@@ -157,7 +157,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// update the condition of the groupPermission object
-			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.GroupPermissionFailed)
+			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
