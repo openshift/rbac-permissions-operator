@@ -56,8 +56,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to secondary resource Namespace
-	// Requeue the GroupPermission CR if there are any changes to namespace
+	// Watch Namespaces because we need to requeue the GroupPermission CR
+	// If he permissions in specific namespaces get created or deleted
 	err = c.Watch(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
