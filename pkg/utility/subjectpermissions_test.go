@@ -20,11 +20,11 @@ import (
 	api "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 )
 
-func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {
-	var groupPermissions = []api.GroupPermission{
+func TestGetClusterRoleBindingsForSubjectPermissions(t *testing.T) {
+	var subjectPermissions = []api.SubjectPermission{
 		{
-			Spec: api.GroupPermissionSpec{
-				GroupName:          "sre-admins",
+			Spec: api.SubjectPermissionSpec{
+				SubjectName:        "sre-admins",
 				ClusterPermissions: []string{"sre-admins-cluster"},
 				Permissions: []api.Permission{
 					{
@@ -37,10 +37,10 @@ func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {
 		},
 	}
 
-	clusterRoleBindings := GetClusterRoleBindingsForGroupPermissions(groupPermissions)
+	clusterRoleBindings := GetClusterRoleBindingsForSubjectPermissions(subjectPermissions)
 
 	for x, clusterRoleBinding := range clusterRoleBindings {
-		groupPermission := groupPermissions[x]
+		subjectPermission := subjectPermissions[x]
 
 		// build table of tests to loop through
 		var tests = []struct {
@@ -48,9 +48,9 @@ func TestGetClusterRoleBindingsForGroupPermissions(t *testing.T) {
 			expected string
 			found    string
 		}{
-			{"Group.Name", groupPermission.Spec.GroupName, clusterRoleBinding.Subjects[0].Name},
-			{"ClusterRole.Name", groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.RoleRef.Name},
-			{"ClusterRoleBinding.Name", groupPermission.Spec.GroupName + "-" + groupPermission.Spec.ClusterPermissions[0], clusterRoleBinding.ObjectMeta.Name},
+			{"Group.Name", subjectPermission.Spec.SubjectName, clusterRoleBinding.Subjects[0].Name},
+			{"ClusterRole.Name", subjectPermission.Spec.ClusterPermissions[0], clusterRoleBinding.RoleRef.Name},
+			{"ClusterRoleBinding.Name", subjectPermission.Spec.SubjectName + "-" + subjectPermission.Spec.ClusterPermissions[0], clusterRoleBinding.ObjectMeta.Name},
 		}
 
 		for _, test := range tests {

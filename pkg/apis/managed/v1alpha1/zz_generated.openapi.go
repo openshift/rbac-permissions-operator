@@ -11,17 +11,17 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermission":       schema_pkg_apis_managed_v1alpha1_GroupPermission(ref),
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec":   schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref),
-		"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus": schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermission":       schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermissionSpec":   schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref),
+		"./pkg/apis/managed/v1alpha1.SubjectPermissionStatus": schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref),
 	}
 }
 
-func schema_pkg_apis_managed_v1alpha1_GroupPermission(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_managed_v1alpha1_SubjectPermission(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "GroupPermission is the Schema for the grouppermissions API",
+				Description: "SubjectPermission is the Schema for the subjectpermissions API",
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -44,31 +44,38 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermission(ref common.ReferenceCallba
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec"),
+							Ref: ref("./pkg/apis/managed/v1alpha1.SubjectPermissionSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus"),
+							Ref: ref("./pkg/apis/managed/v1alpha1.SubjectPermissionStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionSpec", "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.GroupPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"./pkg/apis/managed/v1alpha1.SubjectPermissionSpec", "./pkg/apis/managed/v1alpha1.SubjectPermissionStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_managed_v1alpha1_SubjectPermissionSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "GroupPermissionSpec defines the desired state of GroupPermission",
+				Description: "SubjectPermissionSpec defines the desired state of SubjectPermission",
 				Properties: map[string]spec.Schema{
-					"groupName": {
+					"subjectKind": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name of the Group granted permissions by the operator",
+							Description: "Kind of the Subject that is being granted permissions by the operator",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"subjectName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the Subject granted permissions by the operator",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -94,26 +101,26 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionSpec(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"),
+										Ref: ref("./pkg/apis/managed/v1alpha1.Permission"),
 									},
 								},
 							},
 						},
 					},
 				},
-				Required: []string{"groupName"},
+				Required: []string{"subjectKind", "subjectName"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Permission"},
+			"./pkg/apis/managed/v1alpha1.Permission"},
 	}
 }
 
-func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "GroupPermissionStatus defines the observed state of GroupPermission",
+				Description: "SubjectPermissionStatus defines the observed state of SubjectPermission",
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
@@ -122,7 +129,7 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.Reference
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"),
+										Ref: ref("./pkg/apis/managed/v1alpha1.Condition"),
 									},
 								},
 							},
@@ -140,6 +147,6 @@ func schema_pkg_apis_managed_v1alpha1_GroupPermissionStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1.Condition"},
+			"./pkg/apis/managed/v1alpha1.Condition"},
 	}
 }

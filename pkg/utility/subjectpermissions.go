@@ -24,24 +24,24 @@ func GetRoleBindingsForNamespace() {
 
 }
 
-func GetRoleBindingsForGroupPermissions() {
+func GetRoleBindingsForSubjectPermissions() {
 
 }
 
-func GetClusterRoleBindingsForGroupPermissions(groupPermissions []api.GroupPermission) []rbacv1.ClusterRoleBinding {
+func GetClusterRoleBindingsForSubjectPermissions(groupPermissions []api.SubjectPermission) []rbacv1.ClusterRoleBinding {
 	var output []rbacv1.ClusterRoleBinding
 
 	for _, groupPermission := range groupPermissions {
 		for _, clusterPermission := range groupPermission.Spec.ClusterPermissions {
 			crb := rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: groupPermission.Spec.GroupName + "-" + clusterPermission,
+					Name: groupPermission.Spec.SubjectName + "-" + clusterPermission,
 				},
 				Subjects: []rbacv1.Subject{
 					{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "Group",
-						Name:     groupPermission.Spec.GroupName,
+						Name:     groupPermission.Spec.SubjectName,
 					},
 				},
 				RoleRef: rbacv1.RoleRef{
