@@ -426,14 +426,8 @@ func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPer
 	return clusterRoleBindingNameList
 }
 
-<<<<<<< HEAD:pkg/controller/subjectpermission/subjectpermission_controller.go
 // update the condition of SubjectPermission
 func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
-=======
-// TODO: this might cause memory issue - we are passing a pointer and then returning a pointer to the same object??
-// update the condition of GroupPermission
-func updateCondition(groupPermission *managedv1alpha1.GroupPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.GroupPermissionState) *managedv1alpha1.GroupPermission {
->>>>>>> update comments:pkg/controller/grouppermission/grouppermission_controller.go
 	groupPermissionConditions := groupPermission.Status.Conditions
 
 	// make a new condition
