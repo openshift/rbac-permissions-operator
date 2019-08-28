@@ -2,10 +2,11 @@ package namespace
 
 import (
 	"context"
-	"fmt"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controller/utils"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,13 +105,61 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+	clusterRoleList := &v1.ClusterRoleList{}
+	opts = client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, clusterRoleList)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get clusterRoleList")
+		return reconcile.Result{}, err
+	}
+
 	// loop through all subject permissions
 	for _, subjectPermission := range subjectPermissionList.Items {
 		// loop through all permissions in each
 		for _, permission := range subjectPermission.Spec.Permissions {
-			fmt.Println(permission)
+			// 1st pass, appy allow regex
+			sl := controllerutil.AllowedNamespaceList(permission.NamespacesAllowedRegex, namespaceList)
+
+			// 2nd pass, apply deny regex
+			safeList := controllerutil.SafeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)
+
+			// if namespace is in safeList, create RoleBinding
+			if namespaceInSlice(instance.Name, safeList) {
+				roleBinding := controllerutil.NewRoleBinding(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
+				err := r.client.Create(context.TODO(), roleBinding)
+				if err != nil {
+					// update the condition
+					permissionUpdatedCondition := controllerutil.UpdateCondition(&subjectPermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
+
+					if err != nil {
+						reqLogger.Error(err, "Failed to update condition.")
+						return reconcile.Result{}, err
+					}
+					reqLogger.Error(err, "Failed to create clusterRoleBinding")
+					return reconcile.Result{}, err
+				}
+				permissionUpdatedCondition := controllerutil.UpdateCondition(&subjectPermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
+				err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
+				if err != nil {
+					reqLogger.Error(err, "Failed to update condition.")
+					return reconcile.Result{}, err
+				}
+				reqLogger.Error(err, "Failed to create clusterRoleBinding")
+				return reconcile.Result{}, err
+			}
 		}
 	}
 
 	return reconcile.Result{}, nil
+}
+
+// check if namespace is in safeList
+func namespaceInSlice(namespace string, safeList []string) bool {
+	for _, ns := range safeList {
+		if ns == namespace {
+			return true
+		}
+	}
+	return false
 }

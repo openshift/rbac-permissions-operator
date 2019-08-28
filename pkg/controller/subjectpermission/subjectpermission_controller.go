@@ -343,9 +343,9 @@ func newRoleBinding(clusterRoleName, groupName, namespace string) *v1.RoleBindin
 
 // populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
 // returns list of ClusterRoleNames that do not exist
-func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
-	crClusterRoleNames := groupPermission.Spec.ClusterPermissions
+	crClusterRoleNames := subjectPermission.Spec.ClusterPermissions
 
 	// items is list of clusterRole on k8s
 	onClusterItems := clusterRoleList.Items
@@ -367,9 +367,9 @@ func populateCrClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermissi
 
 // populateCrPermissionClusterRoleNames to see if clusterRoleName exists in permission
 // returns list of ClusterRoleNames in permissions that do not exist
-func populateCrPermissionClusterRoleNames(groupPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func populateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	//permission ClusterRoleName
-	permissions := groupPermission.Spec.Permissions
+	permissions := subjectPermission.Spec.Permissions
 
 	var permissionClusterRoleNames []string
 
