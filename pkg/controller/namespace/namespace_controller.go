@@ -2,7 +2,9 @@ package namespace
 
 import (
 	"context"
+	"fmt"
 
+	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,6 +86,30 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		}
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
+	}
+
+	namespaceList := &corev1.NamespaceList{}
+	opts := client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, namespaceList)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get namespaceList")
+		return reconcile.Result{}, err
+	}
+
+	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
+	opts = client.ListOptions{Namespace: request.Namespace}
+	err = r.client.List(context.TODO(), &opts, subjectPermissionList)
+	if err != nil {
+		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
+		return reconcile.Result{}, err
+	}
+
+	// loop through all subject permissions
+	for _, subjectPermission := range subjectPermissionList.Items {
+		// loop through all permissions in each
+		for _, permission := range subjectPermission.Spec.Permissions {
+			fmt.Println(permission)
+		}
 	}
 
 	return reconcile.Result{}, nil

@@ -54,13 +54,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch Namespaces because we need to requeue the GroupPermission CR
-	// If he permissions in specific namespaces get created or deleted
-	err = c.Watch(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -177,8 +170,6 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		localmetrics.AddPrometheusMetric(instance)
 		return reconcile.Result{}, nil
 	}
-
-	// ___________________Permission and Namespace logic_______________________ //
 
 	// update GroupPermisison Cr when namepsace updates
 	// by looping through each groupPermission
