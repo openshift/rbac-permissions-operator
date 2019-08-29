@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/rbac-permissions-operator/pkg/apis"
 	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controller/utils"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,7 +136,7 @@ func TestValidAllowedNamespacesList(t *testing.T) {
 
 	namespacesAllowedRegex := "openshift.*"
 
-	allowedList := allowedNamespacesList(namespacesAllowedRegex, namespaceList)
+	allowedList := controllerutil.AllowedNamespacesList(namespacesAllowedRegex, namespaceList)
 
 	expectedList := []string{"openshift.admin-stuff", "openshift.readers"}
 
@@ -161,7 +162,7 @@ func TestRemoveNamespacesDeniedFromSafeList(t *testing.T) {
 	// deniedRegex to be passed in
 	namespacesDeniedRegex := "default.*"
 
-	updatedSafelist := safeListAfterDeniedRegex(namespacesDeniedRegex, initSafeList)
+	updatedSafelist := controllerutil.SafeListAfterDeniedRegex(namespacesDeniedRegex, initSafeList)
 
 	expectedSafeList := []string{"openshift.admin-stuff", "openshift.readers"}
 
@@ -205,7 +206,7 @@ func TestPopulateCrPermissionClusterRoleNames(t *testing.T) {
 		t.Errorf("Couldn't get clusterRoleList for test: %s", err)
 	}
 
-	tmpList := populateCrPermissionClusterRoleNames(mockSubjectPermission(), list)
+	tmpList := controllerutil.PopulateCrPermissionClusterRoleNames(mockSubjectPermission(), list)
 
 	resultList := []string{"exampleClusterRoleName"}
 
@@ -358,7 +359,7 @@ func TestCreateValidClusterRoleBinding(t *testing.T) {
 // expected: a RoleBinding that contains the clusterRoleName, groupName, and namespace given
 func TestCreateValidRoleBinding(t *testing.T) {
 
-	newRoleBinding := newRoleBinding("examplePermissionClusterRoleName", "exampleGroupName", "examplenamespace")
+	newRoleBinding := controllerutil.NewRoleBinding("examplePermissionClusterRoleName", "exampleGroupName", "Group", "examplenamespace")
 
 	diff := reflect.DeepEqual(*newRoleBinding, *expectedRoleBinding())
 	if !diff {
@@ -393,7 +394,7 @@ func TestValidClusterRoleBindingListCreation(t *testing.T) {
 // expected: an updated SubjectPermission object with the correct updated fields
 func TestSuccesfulConditionUpdateForSubjectPermission(t *testing.T) {
 	// this is the function we are testing with a mock
-	buildCondition := updateCondition(mockSubjectPermission(), "testMessage", "testClusterRoleName", false, "testState")
+	buildCondition := controllerutil.UpdateCondition(mockSubjectPermission(), "testMessage", "testClusterRoleName", false, "testState")
 
 	// make a map of the result that we want to check mock against
 	testMap := make(map[int]v1alpha1.Condition)

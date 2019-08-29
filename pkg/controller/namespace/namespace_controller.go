@@ -118,7 +118,7 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 		// loop through all permissions in each
 		for _, permission := range subjectPermission.Spec.Permissions {
 			// 1st pass, appy allow regex
-			sl := controllerutil.AllowedNamespaceList(permission.NamespacesAllowedRegex, namespaceList)
+			sl := controllerutil.AllowedNamespacesList(permission.NamespacesAllowedRegex, namespaceList)
 
 			// 2nd pass, apply deny regex
 			safeList := controllerutil.SafeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)

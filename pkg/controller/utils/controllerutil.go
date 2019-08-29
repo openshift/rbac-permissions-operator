@@ -35,7 +35,7 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 }
 
 // AllowedNamespaceList 1st pass - allowedRegex
-func AllowedNamespaceList(allowedRegex string, nsList *corev1.NamespaceList) []string {
+func AllowedNamespacesList(allowedRegex string, nsList *corev1.NamespaceList) []string {
 	var matches []string
 
 	// for every namespace on the cluster

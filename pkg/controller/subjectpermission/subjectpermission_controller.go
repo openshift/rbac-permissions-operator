@@ -3,10 +3,10 @@ package subjectpermission
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controller/utils"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
@@ -114,7 +114,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 	for _, crClusterRoleName := range crClusterRoleNameList {
 
 		// helper func to update the condition of the SubjectPermission object
-		instance := updateCondition(instance, crClusterRoleName+" for clusterPermission does not exist", crClusterRoleName, true, "Failed")
+		instance := controllerutil.UpdateCondition(instance, crClusterRoleName+" for clusterPermission does not exist", crClusterRoleName, true, "Failed")
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
@@ -150,7 +150,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		err := r.client.Create(context.TODO(), newCRB)
 		if err != nil {
 			// update the condition of the groupPermission object
-			instance := updateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+			instance := controllerutil.UpdateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -160,7 +160,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			return reconcile.Result{}, err
 		}
 		// helper func to update condition of groupPermission object
-		instance := updateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
+		instance := controllerutil.UpdateCondition(instance, "Successfully created ClusterRoleBinding", clusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
@@ -171,83 +171,58 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, nil
 	}
 
-	// update GroupPermisison Cr when namepsace updates
-	// by looping through each groupPermission
-	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
+	// get the Namespace instance
+	ns := &corev1.Namespace{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, ns)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Object not found, it can be transitioning to the final desired state
+			// e. g. deletion or creation still in progress. Return and retry again
+			reqLogger.Info("Object not ready")
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object
+		reqLogger.Info("Error Getting Namespace")
+		return reconcile.Result{}, err
+	}
+
+	// get the NamespaceList
+	nsList := &corev1.NamespaceList{}
 	opts = client.ListOptions{Namespace: request.Namespace}
-	err = r.client.List(context.TODO(), &opts, subjectPermissionList)
+	err = r.client.List(context.TODO(), &opts, nsList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
 	}
 
-	// for each CR get the namespace and compare with regex
-	for _, subjectpermission := range subjectPermissionList.Items {
+	// slice of clusterRoleName that does not exists as a clusterRole
+	permissionClusterRoleNameList := controllerutil.PopulateCrPermissionClusterRoleNames(instance, clusterRoleList)
+	for _, permissionClusterRoleName := range permissionClusterRoleNameList {
+		// update condition
+		updatedSubjectPermission := controllerutil.UpdateCondition(instance, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
+		err = r.client.Status().Update(context.TODO(), updatedSubjectPermission)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition.")
+			return reconcile.Result{}, err
+		}
+	}
 
-		// slice of clusterRoleName that does not exists as a clusterRole
-		permissionClusterRoleNameList := populateCrPermissionClusterRoleNames(&subjectpermission, clusterRoleList)
+	// compile list of allowed namespaces only for this subject permission. NOT a list of subject permissions
+	for _, permission := range instance.Spec.Permissions {
+		// apply allow list
+		sl := controllerutil.AllowedNamespacesList(permission.NamespacesAllowedRegex, nsList)
 
-		for _, permissionClusterRoleName := range permissionClusterRoleNameList {
-			// update condition
-			updatedSubjectPermission := updateCondition(&subjectpermission, permissionClusterRoleName+" for clusterPermission does not exist", permissionClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
-			err = r.client.Status().Update(context.TODO(), updatedSubjectPermission)
+		// apply deny list
+		safeListed := controllerutil.SafeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)
+
+		// for each safelisted namespace
+		for _, ns := range safeListed {
+			//create roleBinding
+			roleBinding := controllerutil.NewRoleBinding(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
+			err := r.client.Create(context.TODO(), roleBinding)
 			if err != nil {
-				reqLogger.Error(err, "Failed to update condition.")
-				return reconcile.Result{}, err
-			}
-		}
-
-		// get the Namespace instance
-		ns := &corev1.Namespace{}
-		err = r.client.Get(context.TODO(), request.NamespacedName, ns)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				// Object not found, it can be transitioning to the final desired state
-				// e. g. deletion or creation still in progress. Return and retry again
-				reqLogger.Info("Object not ready")
-				return reconcile.Result{}, nil
-			}
-			// Error reading the object
-			reqLogger.Info("Error Getting Namespace")
-			return reconcile.Result{}, err
-		}
-
-		// get the NamespaceList
-		nsList := &corev1.NamespaceList{}
-		opts = client.ListOptions{Namespace: request.Namespace}
-		err = r.client.List(context.TODO(), &opts, nsList)
-		if err != nil {
-			reqLogger.Error(err, "Failed to get clusterRoleBindingList")
-			return reconcile.Result{}, err
-		}
-
-		// loop through each permission of GroupPermission CR
-		for _, permission := range subjectpermission.Spec.Permissions {
-			// apply allow list
-			sl := allowedNamespacesList(permission.NamespacesAllowedRegex, nsList)
-
-			// apply deny list
-			safeListed := safeListAfterDeniedRegex(permission.NamespacesDeniedRegex, sl)
-
-			// for each safelisted namespace
-			for _, ns := range safeListed {
-				//create roleBinding
-				roleBinding := newRoleBinding(permission.ClusterRoleName, instance.Spec.SubjectName, ns)
-				err := r.client.Create(context.TODO(), roleBinding)
-				if err != nil {
-					// update the condition
-					permissionUpdatedCondition := updateCondition(&subjectpermission, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
-					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
-					if err != nil {
-						reqLogger.Error(err, "Failed to update condition.")
-						return reconcile.Result{}, err
-					}
-					reqLogger.Error(err, "Failed to create clusterRoleBinding")
-					return reconcile.Result{}, err
-				}
-
-				// update condition
-				permissionUpdatedCondition := updateCondition(&subjectpermission, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
+				// update the condition
+				permissionUpdatedCondition := controllerutil.UpdateCondition(instance, "Unable to create RoleBinding: "+err.Error(), permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionFailed)
 				err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
 				if err != nil {
 					reqLogger.Error(err, "Failed to update condition.")
@@ -256,50 +231,20 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				reqLogger.Error(err, "Failed to create clusterRoleBinding")
 				return reconcile.Result{}, err
 			}
+
+			// update condition
+			permissionUpdatedCondition := controllerutil.UpdateCondition(instance, "Succesfully created RoleBinding", permission.ClusterRoleName, true, managedv1alpha1.SubjectPermissionCreated)
+			err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
+			if err != nil {
+				reqLogger.Error(err, "Failed to update condition.")
+				return reconcile.Result{}, err
+			}
+			reqLogger.Error(err, "Failed to create clusterRoleBinding")
+			return reconcile.Result{}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
-}
-
-// allowedNamespacesList return a slice of allowed namespaces on cluster given a permission regex
-func allowedNamespacesList(namespacesAllowedRegex string, namespaceList *corev1.NamespaceList) []string {
-	var matches []string
-
-	// for every namespace on the cluster
-	// check that against the allowedRegex in Permission
-	for _, namespace := range namespaceList.Items {
-		rp := regexp.MustCompile(namespacesAllowedRegex)
-
-		// if namespace on cluster matches with regex, append them to slice
-		found := rp.MatchString(namespace.Name)
-		if found {
-			matches = append(matches, namespace.Name)
-		}
-	}
-
-	return matches
-}
-
-// safeListAfterDeniedRegex takes in slice of allowedNamespaces
-// returns slice of namespaces after applying deny regex
-func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) []string {
-	var updatedSafeList []string
-
-	// for every namespace on SafeList
-	// check that against deniedRegex
-	for _, namespace := range safeList {
-		rp := regexp.MustCompile(namespacesDeniedRegex)
-
-		found := rp.MatchString(namespace)
-		// if it does not match then append
-		if !found {
-			updatedSafeList = append(updatedSafeList, namespace)
-		}
-	}
-
-	return updatedSafeList
-
 }
 
 // newClusterRoleBinding creates and returns ClusterRoleBinding
@@ -312,26 +257,6 @@ func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind stri
 			{
 				Kind: subjectKind,
 				Name: subjectName,
-			},
-		},
-		RoleRef: v1.RoleRef{
-			Kind: "ClusterRole",
-			Name: clusterRoleName,
-		},
-	}
-}
-
-// newRoleBinding creates and returns RoleBinding
-func newRoleBinding(clusterRoleName, groupName, namespace string) *v1.RoleBinding {
-	return &v1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterRoleName + "-" + groupName,
-			Namespace: namespace,
-		},
-		Subjects: []v1.Subject{
-			{
-				Kind: "Group",
-				Name: groupName,
 			},
 		},
 		RoleRef: v1.RoleRef{
@@ -365,25 +290,6 @@ func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermis
 	return crClusterRoleNameList
 }
 
-// populateCrPermissionClusterRoleNames to see if clusterRoleName exists in permission
-// returns list of ClusterRoleNames in permissions that do not exist
-func populateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
-	//permission ClusterRoleName
-	permissions := subjectPermission.Spec.Permissions
-
-	var permissionClusterRoleNames []string
-
-	for _, i := range clusterRoleList.Items {
-		for _, a := range permissions {
-			if i.Name != a.ClusterRoleName {
-				permissionClusterRoleNames = append(permissionClusterRoleNames, a.ClusterRoleName)
-			}
-		}
-	}
-
-	return permissionClusterRoleNames
-}
-
 // populateClusterRoleBindingNames to see if ClusterRoleBinding exists in k8s ClusterRoleBindlingList
 // returns a slice of clusterRoleBindingNames that exists in CR but not in clusterRoleBindingList
 func populateClusterRoleBindingNames(clusterRoleBindingNames []string, clusterRoleBindingList *v1.ClusterRoleBindingList) []string {
@@ -415,23 +321,4 @@ func buildClusterRoleBindingCRList(clusterPermission *managedv1alpha1.SubjectPer
 	}
 
 	return clusterRoleBindingNameList
-}
-
-// update the condition of SubjectPermission
-func updateCondition(groupPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleName string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
-	groupPermissionConditions := groupPermission.Status.Conditions
-
-	// make a new condition
-	newCondition := managedv1alpha1.Condition{
-		LastTransitionTime: metav1.Now(),
-		ClusterRoleName:    clusterRoleName,
-		Message:            message,
-		Status:             status,
-		State:              state,
-	}
-
-	// append new condition back to the conditions array
-	groupPermission.Status.Conditions = append(groupPermissionConditions, newCondition)
-
-	return groupPermission
 }
