@@ -42,13 +42,16 @@ default: gobuild
 clean:
 	rm -rf ./build/_output
 
+vendor_modules: vendor
+	go mod vendor
+
 .PHONY: isclean 
 isclean:
 	@(test "$(ALLOW_DIRTY_CHECKOUT)" != "false" || test 0 -eq $$(git status --porcelain | wc -l)) || (echo "Local git checkout is not clean, commit changes and try again." && exit 1)
 
 .PHONY: build
 build: isclean envtest
-	docker build . -f $(OPERATOR_DOCKERFILE) -t $(OPERATOR_IMAGE_URI)
+	docker build --rm . -f $(OPERATOR_DOCKERFILE) -t $(OPERATOR_IMAGE_URI)
 	docker tag $(OPERATOR_IMAGE_URI) $(OPERATOR_IMAGE_URI_LATEST)
 
 .PHONY: push
@@ -62,7 +65,8 @@ gocheck: ## Lint code
 	go vet ./cmd/... ./pkg/...
 
 .PHONY: gobuild
-gobuild: gocheck gotest ## Build binary
+#gobuild: gocheck gotest ## Build binary
+gobuild:
 	${GOENV} go build ${GOFLAGS} -o ${BINFILE} ${MAINPACKAGE}
 
 .PHONY: gotest

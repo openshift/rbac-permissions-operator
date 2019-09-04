@@ -29,6 +29,10 @@ import (
 	// OSD metrics
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+
+	// Permission check
+
+	"github.com/openshift/rbac-permissions-operator/pkg/permissioncheck"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -103,6 +107,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	pc := permissioncheck.NewPermissionCheck(cfg)
+
+	log.Info(fmt.Sprintf("Checking %d permissions for the operator's ServiceAccount before starting...", len(operatorconfig.OperatorPermissions)))
+
+	permissionsAreValid, err := pc.CheckPermissions(operatorconfig.OperatorPermissions)
+	if err != nil {
+		log.Error(err, "Error occurred while checking operator serviceAccount permissions at startup.")
+		os.Exit(1)
+	}
+	if !permissionsAreValid {
+		// in theory, if permissionsAreValid is false, this will not be reached because
+		// there will be an accompanying error.
+		log.Info("My permissions are not valid. Check config.go")
+		os.Exit(1)
+	}
+	log.Info(fmt.Sprintf("%d Permissions OK. Continuing.", len(operatorconfig.OperatorPermissions)))
+
 	log.Info("Registering Components.")
 
 	// Setup Scheme for all resources
@@ -110,7 +131,6 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
-
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")

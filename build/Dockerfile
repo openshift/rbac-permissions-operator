@@ -1,11 +1,12 @@
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.11 AS builder
+FROM registry.svc.ci.openshift.org/openshift/release:golang-1.12 AS builder
 ENV OPERATOR_PATH=/go/src/github.com/openshift/rbac-permissions-operator
 COPY . ${OPERATOR_PATH}
 WORKDIR ${OPERATOR_PATH}
 ENV GO111MODULE=on
+
+
 RUN \
   cd ${OPERATOR_PATH} && \
-  go mod download && \
   make gobuild
 
 FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base

@@ -22,3 +22,10 @@ docker-push:
 operator-sdk-generate:
 	operator-sdk generate openapi
 	operator-sdk generate k8s
+
+.PHONY: deploy
+deploy: build push
+	oc -n openshift-rbac-permissions-operator delete -f deploy/
+	oc -n openshift-rbac-permissions-operator apply -f deploy/crds/*crd*.yaml || true
+	oc -n openshift-rbac-permissions-operator apply -f deploy/
+	

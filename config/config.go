@@ -14,8 +14,40 @@
 
 package config
 
+import (
+	auth "k8s.io/api/authorization/v1"
+)
+
 const (
 	OperatorConfigMapName string = "rbac-permissions-operator"
 	OperatorName          string = "rbac-permissions-operator"
 	OperatorNamespace     string = "openshift-rbac-permissions-operator"
+)
+
+var (
+	// OperatorPermissions - All of the permissions the operator needs to run and do its job
+	// Ref: Role in deploy directory.
+	OperatorPermissions []auth.ResourceAttributes = []auth.ResourceAttributes{
+		{Resource: "pods", Verb: "list", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "pods", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "services", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "endpoints", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "persistentvolumeclaims", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "events", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "configmaps", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Resource: "secrets", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+
+		{Group: "apps", Resource: "deployments", Verb: "*", Version: "v1", Namespace: OperatorNamespace},
+		{Group: "apps", Resource: "daemonsets", Verb: "*", Version: "extensions/v1beta1", Namespace: OperatorNamespace},
+		{Group: "apps", Resource: "replicasets", Verb: "*", Version: "extensions/v1beta1", Namespace: OperatorNamespace},
+		{Group: "apps", Resource: "statefulsets", Verb: "*", Version: "apps/v1", Namespace: OperatorNamespace},
+
+		{Group: "monitoring.coreos.com", Resource: "servicemonitors", Verb: "get", Version: "v1", Namespace: OperatorNamespace},
+		{Group: "monitoring.coreos.com", Resource: "servicemonitors", Verb: "create", Version: "v1", Namespace: OperatorNamespace},
+
+		{Group: "apps", Resource: "deployments", Verb: "update", Subresource: "finalizers", Name: "rbac-permissions-operator", Namespace: OperatorNamespace},
+
+		{Group: "managed.openshift.io", Resource: "*", Verb: "*", Namespace: OperatorNamespace},
+		//{Group: "apps", Verb: "update", Resource: "deployments/finalizers", Subresource: "rbac-permissions-operator"},
+	}
 )
