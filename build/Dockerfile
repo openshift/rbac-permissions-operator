@@ -2,7 +2,8 @@ FROM registry.svc.ci.openshift.org/openshift/release:golang-1.12 AS builder
 ENV OPERATOR_PATH=/go/src/github.com/openshift/rbac-permissions-operator
 COPY . ${OPERATOR_PATH}
 WORKDIR ${OPERATOR_PATH}
-ENV GO111MODULE=on
+ENV GO111MODULE=on \
+  GOPROXY=https://proxy.golang.org
 
 
 RUN \
