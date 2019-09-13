@@ -17,22 +17,22 @@ endif
 
 # Generate version and tag information from inputs
 COMMIT_NUMBER=$(shell git rev-list `git rev-list --parents HEAD | egrep "^[a-f0-9]{40}$$"`..HEAD --count)
-CURRENT_COMMIT=$(shell git rev-parse --short=8 HEAD)
+CURRENT_COMMIT=$(shell git rev-parse --short=7 HEAD)
 OPERATOR_VERSION=$(VERSION_MAJOR).$(VERSION_MINOR).$(COMMIT_NUMBER)-$(CURRENT_COMMIT)
 
-IMG?=$(IMAGE_REGISTRY)/$(IMAGE_REPOSITORY)/$(IMAGE_NAME):v$(OPERATOR_VERSION)
-OPERATOR_IMAGE_URI=${IMG}
+OPERATOR_IMAGE_URI=$(IMAGE_REGISTRY)/$(IMAGE_REPOSITORY)/$(IMAGE_NAME):v$(OPERATOR_VERSION)
 OPERATOR_IMAGE_URI_LATEST=$(IMAGE_REGISTRY)/$(IMAGE_REPOSITORY)/$(IMAGE_NAME):latest
 OPERATOR_DOCKERFILE ?=build/Dockerfile
 
 BINFILE=build/_output/bin/$(OPERATOR_NAME)
 MAINPACKAGE=./cmd/manager
+export GO111MODULE=on
+export GOPROXY?=https://proxy.golang.org
 GOENV=GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 GOFLAGS=-gcflags="all=-trimpath=${GOPATH}" -asmflags="all=-trimpath=${GOPATH}"
 
-TESTTARGETS := $(shell go list -e ./... | egrep -v "/(vendor)/")
 # ex, -v
-TESTOPTS := 
+TESTOPTS :=
 
 ALLOW_DIRTY_CHECKOUT?=false
 
@@ -42,13 +42,13 @@ default: gobuild
 clean:
 	rm -rf ./build/_output
 
-.PHONY: isclean 
+.PHONY: isclean
 isclean:
-	@(test "$(ALLOW_DIRTY_CHECKOUT)" != "false" || test 0 -eq $$(git status --porcelain | wc -l)) || (echo "Local git checkout is not clean, commit changes and try again." && exit 1)
+	@(test "$(ALLOW_DIRTY_CHECKOUT)" != "false" || test 0 -eq $$(git status --porcelain | wc -l)) || (echo "Local git checkout is not clean, commit changes and try again." >&2 && exit 1)
 
 .PHONY: build
 build: isclean envtest
-	docker build . -f $(OPERATOR_DOCKERFILE) -t $(OPERATOR_IMAGE_URI)
+	docker build --build-arg "GOPROXY=${GOPROXY}" . -f $(OPERATOR_DOCKERFILE) -t $(OPERATOR_IMAGE_URI)
 	docker tag $(OPERATOR_IMAGE_URI) $(OPERATOR_IMAGE_URI_LATEST)
 
 .PHONY: push
@@ -67,12 +67,12 @@ gobuild: gocheck gotest ## Build binary
 
 .PHONY: gotest
 gotest:
-	go test $(TESTOPTS) $(TESTTARGETS)
+	go test $(TESTOPTS) $(shell GO111MODULE=$(GO111MODULE) GOPROXY=$(GOPROXY) go list -mod=readonly -e ./... | egrep -v "/(vendor)/")
 
 .PHONY: envtest
 envtest:
 	@# test that the env target can be evaluated, required by osd-operators-registry
-	@eval $$($(MAKE) env --no-print-directory) || (echo 'Unable to evaulate output of `make env`.  This breaks osd-operators-registry.' && exit 1)
+	@eval $$($(MAKE) env --no-print-directory) || (echo 'Unable to evaulate output of `make env`.  This breaks osd-operators-registry.' >&2 && exit 1)
 
 .PHONY: test
 test: envtest gotest
