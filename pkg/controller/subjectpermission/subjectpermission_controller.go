@@ -117,7 +117,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		clusterRoleNames = append(clusterRoleNames, crClusterRoleName)
 
 		// helper func to update the condition of the SubjectPermission object
-		instance := controllerutil.UpdateCondition(instance, crClusterRoleName+" for clusterPermission does not exist", clusterRoleNames, true, "Failed")
+		clusterPermissionFailsMsg := fmt.Sprintf("%s for clusterPermission does not exist", crClusterRoleName)
+		instance := controllerutil.UpdateCondition(instance, clusterPermissionFailsMsg, clusterRoleNames, true, "Failed")
 		err = r.client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
@@ -156,7 +157,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			clusterRoleNames = append(clusterRoleNames, clusterRoleName)
 
 			// update the condition if creation of a ClusterRoleBinding has failed
-			instance := controllerutil.UpdateCondition(instance, "Unable to create ClusterRoleBinding: "+err.Error(), clusterRoleNames, true, managedv1alpha1.SubjectPermissionFailed)
+			unableToCreateCrbMsg := fmt.Sprintf("Unable to create ClusterRoleBinding: %s", err.Error())
+			instance := controllerutil.UpdateCondition(instance, unableToCreateCrbMsg, clusterRoleNames, true, managedv1alpha1.SubjectPermissionFailed)
 			err = r.client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition.")
@@ -193,7 +195,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		permissionsClusterRoleNames = append(permissionsClusterRoleNames, permissionClusterRoleName)
 
 		// update condition
-		updatedSubjectPermission := controllerutil.UpdateCondition(instance, permissionClusterRoleName+" for clusterPermission does not exist", permissionsClusterRoleNames, true, managedv1alpha1.SubjectPermissionFailed)
+		permissionCrNameFailsMsg := fmt.Sprintf("%s for clusterPermission does not exist", permissionClusterRoleName)
+		updatedSubjectPermission := controllerutil.UpdateCondition(instance, permissionCrNameFailsMsg, permissionsClusterRoleNames, true, managedv1alpha1.SubjectPermissionFailed)
 		err = r.client.Status().Update(context.TODO(), updatedSubjectPermission)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition.")
