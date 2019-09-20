@@ -53,7 +53,7 @@ type Condition struct {
 	// +optional
 	Message string `json:"message,omitempty"`
 	// ClusterRoleName in which this condition is true
-	ClusterRoleName string `json:"clusterRoleName"`
+	ClusterRoleNames []string `json:"clusterRoleName"`
 	// Flag to indicate if condition status is currently active
 	Status bool `json:"status"`
 	// State that this condition represents
