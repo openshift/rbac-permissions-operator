@@ -47,13 +47,15 @@ type SubjectPermissionStatus struct {
 
 // Condition defines a single condition of running the operator against an instance of the SubjectPermission CR
 type Condition struct {
+	// Type is the type of the condition
+	Type SubjectPermissionType `json:"type,omitempty"`
 	// LastTransitionTime is the last time this condition was active for the CR
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// Message related to the condition
 	// +optional
 	Message string `json:"message,omitempty"`
 	// ClusterRoleName in which this condition is true
-	ClusterRoleNames []string `json:"clusterRoleName"`
+	ClusterRoleNames []string `json:"clusterRoleName,omitempty"`
 	// Flag to indicate if condition status is currently active
 	Status bool `json:"status"`
 	// State that this condition represents
@@ -63,11 +65,18 @@ type Condition struct {
 // SubjectPermissionState defines various states a SubjectPermission CR can be in
 type SubjectPermissionState string
 
+// SubjectPermissionType defines various type a SubjectPermission CR can be in
+type SubjectPermissionType string
+
 const (
 	// SubjectPermissionCreated const for Created status
-	SubjectPermissionCreated SubjectPermissionState = "Created"
+	SubjectPermissionCreated SubjectPermissionType = "Created"
 	// SubjectPermissionFailed const for Failed status
-	SubjectPermissionFailed SubjectPermissionState = "Failed"
+	SubjectPermissionFailed SubjectPermissionType = "Failed"
+	// SubjectPermissionStateCreated const for Created state
+	SubjectPermissionStateCreated SubjectPermissionState = "Created"
+	// SubjectPermissionStateFailed const for Failed state
+	SubjectPermissionStateFailed SubjectPermissionState = "Failed"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

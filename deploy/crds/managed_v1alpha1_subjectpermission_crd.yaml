@@ -75,11 +75,6 @@ spec:
               description: List of conditions for the CR
               items:
                 properties:
-                  clusterRoleName:
-                    description: ClusterRoleName in which this condition is true
-                    items:
-                      type: string
-                    type: array
                   lastTransitionTime:
                     description: LastTransitionTime is the last time this condition
                       was active for the CR
@@ -95,9 +90,12 @@ spec:
                     description: Flag to indicate if condition status is currently
                       active
                     type: boolean
+                  type:
+                    description: Type is the type of the condition
+                    type: string
                 required:
+                - type
                 - lastTransitionTime
-                - clusterRoleName
                 - status
                 - state
                 type: object

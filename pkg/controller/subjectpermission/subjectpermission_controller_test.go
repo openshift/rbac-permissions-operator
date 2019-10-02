@@ -3,6 +3,7 @@ package subjectpermission
 import (
 	"context"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/openshift/rbac-permissions-operator/pkg/apis"
@@ -38,6 +39,9 @@ func mockSubjectPermission() *v1alpha1.SubjectPermission {
 			Permissions: []v1alpha1.Permission{
 				{
 					ClusterRoleName: "exampleClusterRoleName",
+				},
+				{
+					ClusterRoleName: "testClusterRoleName",
 				},
 			},
 		},
@@ -118,7 +122,7 @@ func TestValidSafeList(t *testing.T) {
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "default.whatver",
+					Name: "default.whatever",
 				},
 			},
 			{
@@ -129,12 +133,11 @@ func TestValidSafeList(t *testing.T) {
 		},
 	}
 
-	namespacesAllowedRegex := "openshift.*"
-	namespacesDeniedRegex := "default.*"
+	namespacesAllowedRegex := "default"
+	namespacesDeniedRegex := ""
 
 	safeList := controllerutil.GenerateSafeList(namespacesAllowedRegex, namespacesDeniedRegex, namespaceList)
-
-	expectedSafeList := []string{"openshift.admin-stuff", "openshift.readers"}
+	expectedSafeList := []string{"default.whatever"}
 
 	if len(safeList) != len(expectedSafeList) {
 		t.Errorf("the length does not match")
@@ -176,8 +179,8 @@ func TestPopulateCrPermissionClusterRoleNames(t *testing.T) {
 	}
 
 	tmpList := controllerutil.PopulateCrPermissionClusterRoleNames(mockSubjectPermission(), list)
-
-	resultList := []string{"exampleClusterRoleName"}
+	sort.Strings(tmpList)
+	resultList := []string{"exampleClusterRoleName", "testClusterRoleName"}
 
 	if len(tmpList) != len(resultList) { // check against an actual number??
 		t.Errorf("the length does not match")
@@ -230,7 +233,7 @@ func TestClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
 
 	// this is the desired result
 	resultList := []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"}
-
+	sort.Strings(tmpList)
 	if len(tmpList) != len(resultList) { // check against an actual number??
 		t.Errorf("the length does not match")
 	}

@@ -1,5 +1,5 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   creationTimestamp: null
   name: rbac-permissions-operator
@@ -14,15 +14,16 @@ rules:
   - events
   - configmaps
   - secrets
+  - namespaces
   verbs:
   - '*'
 - apiGroups:
-  - apps
+  - "rbac.authorization.k8s.io"
   resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
+  - clusterrolebindings
+  - clusterroles
+  - rolebindings
+  - roles
   verbs:
   - '*'
 - apiGroups:
@@ -33,16 +34,8 @@ rules:
   - get
   - create
 - apiGroups:
-  - apps
-  resourceNames:
-  - rbac-permissions-operator
-  resources:
-  - deployments/finalizers
-  verbs:
-  - update
-- apiGroups:
   - managed.openshift.io
   resources:
-  - '*'
+  - subjectpermissions
   verbs:
   - '*'

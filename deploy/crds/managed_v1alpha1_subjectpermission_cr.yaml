@@ -3,5 +3,10 @@ kind: SubjectPermission
 metadata:
   name: example-subjectpermission
 spec:
-  # Add fields here
-  size: 3
+  subjectKind: Group
+  subjectName: Test
+  permissions:
+    -
+      clusterRoleName: bar
+      namespacesAllowedRegex: openshift.*
+      allowFirst: true

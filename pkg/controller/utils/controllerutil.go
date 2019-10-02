@@ -31,13 +31,25 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 		}
 	}
 
-	return permissionClusterRoleNames
+	// create a map of all unique elements
+	encountered := map[string]bool{}
+	for v := range permissionClusterRoleNames {
+		encountered[permissionClusterRoleNames[v]] = true
+	}
+
+	// place all keys from map into slice
+	result := []string{}
+	for key := range encountered {
+		result = append(result, key)
+	}
+
+	return result
 }
 
 // GenerateSafeList by 1st checking allow regex then check denied regex
 func GenerateSafeList(allowedRegex string, deniedRegex string, nsList *corev1.NamespaceList) []string {
-
 	safeList := allowedNamespacesList(allowedRegex, nsList)
+
 	updatedSafeList := safeListAfterDeniedRegex(deniedRegex, safeList)
 
 	return updatedSafeList
@@ -65,6 +77,9 @@ func allowedNamespacesList(allowedRegex string, nsList *corev1.NamespaceList) []
 
 // safeListAfterDeniedRegex 2nd pass - deniedRegex
 func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) []string {
+	if namespacesDeniedRegex == "" {
+		return safeList
+	}
 	var updatedSafeList []string
 
 	// for every namespace on SafeList
@@ -78,7 +93,6 @@ func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) [
 			updatedSafeList = append(updatedSafeList, namespace)
 		}
 	}
-
 	return updatedSafeList
 
 }
@@ -104,22 +118,44 @@ func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectKind, nam
 }
 
 // UpdateCondition of SubjectPermission
-func UpdateCondition(subjectPermission *managedv1alpha1.SubjectPermission, message string, clusterRoleNames []string, status bool, state managedv1alpha1.SubjectPermissionState) *managedv1alpha1.SubjectPermission {
-	groupPermissionConditions := subjectPermission.Status.Conditions
+func UpdateCondition(conditions []managedv1alpha1.Condition, message string, clusterRoleNames []string, status bool, state managedv1alpha1.SubjectPermissionState, conditionType managedv1alpha1.SubjectPermissionType) []managedv1alpha1.Condition {
+	now := metav1.Now()
 
-	// make a new condition
-	newCondition := managedv1alpha1.Condition{
-		LastTransitionTime: metav1.Now(),
-		ClusterRoleNames:   clusterRoleNames,
-		Message:            message,
-		Status:             status,
-		State:              state,
+	existingCondition := FindRbacCondition(conditions, conditionType)
+
+	if existingCondition == nil {
+		conditions = append(
+			conditions, managedv1alpha1.Condition{
+				LastTransitionTime: now,
+				ClusterRoleNames:   clusterRoleNames,
+				Message:            message,
+				Status:             status,
+				State:              state,
+				Type:               conditionType,
+			},
+		)
+	} else {
+		if existingCondition.Status != status {
+			existingCondition.LastTransitionTime = now
+		}
+		existingCondition.Message = message
+		existingCondition.ClusterRoleNames = clusterRoleNames
+		existingCondition.Status = status
+		existingCondition.State = state
 	}
 
-	// append new condition back to the conditions array
-	subjectPermission.Status.Conditions = append(groupPermissionConditions, newCondition)
+	return conditions
+}
 
-	return subjectPermission
+// FindRbacCondition finds in the condition that has the specified condition type in the given list
+// if none exists, then returns nil
+func FindRbacCondition(conditions []managedv1alpha1.Condition, conditionType managedv1alpha1.SubjectPermissionType) *managedv1alpha1.Condition {
+	for i, condition := range conditions {
+		if condition.Type == conditionType {
+			return &conditions[i]
+		}
+	}
+	return nil
 }
 
 // RoleBindingExists checks if a rolebinding exists in the cluster already
