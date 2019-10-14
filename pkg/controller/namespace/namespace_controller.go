@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -91,7 +92,7 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	namespaceList := &corev1.NamespaceList{}
-	opts := client.ListOptions{Namespace: request.Namespace}
+	opts := client.ListOptions{}
 	err = r.client.List(context.TODO(), &opts, namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
@@ -99,23 +100,15 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
-	opts = client.ListOptions{Namespace: request.Namespace}
 	err = r.client.List(context.TODO(), &opts, subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
 	}
 
-	clusterRoleList := &v1.ClusterRoleList{}
-	opts = client.ListOptions{Namespace: request.Namespace}
-	err = r.client.List(context.TODO(), &opts, clusterRoleList)
-	if err != nil {
-		reqLogger.Error(err, "Failed to get clusterRoleList")
-		return reconcile.Result{}, err
-	}
-
 	roleBindingList := &v1.RoleBindingList{}
-	opts = client.ListOptions{Namespace: request.Namespace}
+	// request.Name is the instance namespace we are reconciling
+	opts = client.ListOptions{Namespace: request.Name}
 	err = r.client.List(context.TODO(), &opts, roleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
@@ -126,18 +119,15 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	// get namespaces allowed in each permission
 	// if our namespace instance is in the safeList, create rolebinding and update condition
 	for _, subjectPermission := range subjectPermissionList.Items {
-		// loop through all permissions in each
 		for _, permission := range subjectPermission.Spec.Permissions {
 			var successfulClusterRoleNames []string
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
-
 			// if namespace is in safeList, create RoleBinding
 			if namespaceInSlice(instance.Name, safeList) {
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
-
 				// if rolebinding is already created in the namespace, there's nothing to do
 				if rolebindingInNamespace(roleBinding, roleBindingList) {
 					return reconcile.Result{}, nil
@@ -145,30 +135,17 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 				err := r.client.Create(context.TODO(), roleBinding)
 				if err != nil {
+					if k8serr.IsAlreadyExists(err) {
+						continue
+					}
 					var permissionClusterRoleNames []string
 					permissionClusterRoleNames = append(permissionClusterRoleNames, permission.ClusterRoleName)
-					// update the condition
-					unableToCreateRoleBindingMsg := fmt.Sprintf("Unable to create RoleBinding: %s", err.Error())
-					permissionUpdatedCondition := controllerutil.UpdateCondition(&subjectPermission, unableToCreateRoleBindingMsg, permissionClusterRoleNames, true, managedv1alpha1.SubjectPermissionFailed)
-					err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
-					if err != nil {
-						reqLogger.Error(err, "Failed to update condition.")
-						return reconcile.Result{}, err
-					}
 					failedToCreateRoleBindingMsg := fmt.Sprintf("Failed to create rolebinding %s", roleBinding.Name)
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
 					return reconcile.Result{}, err
 				}
-				reqLogger.Error(err, "Failed to create clusterRoleBinding")
-				return reconcile.Result{}, err
 			}
-			// update condition of SubjectPermission object if all rolebindings created succesfully
-			permissionUpdatedCondition := controllerutil.UpdateCondition(&subjectPermission, "successfully created RoleBinding", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionCreated)
-			err = r.client.Status().Update(context.TODO(), permissionUpdatedCondition)
-			if err != nil {
-				reqLogger.Error(err, "Failed to update condition.")
-				return reconcile.Result{}, err
-			}
+			return reconcile.Result{}, nil
 		}
 	}
 

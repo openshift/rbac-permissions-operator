@@ -35,11 +35,11 @@ var (
 	}, []string{
 		"subject_name",
 		"subject_permission_name",
-		"permission_name",
+		"cluster_role_name",
 		"namespace_allow",
 		"namespace_deny",
 		"allow_first",
-		"stage",
+		"state",
 	})
 
 	// MetricsList all metrics exported by this package
