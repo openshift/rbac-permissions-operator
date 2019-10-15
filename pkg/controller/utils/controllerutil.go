@@ -123,11 +123,24 @@ func UpdateCondition(conditions []managedv1alpha1.Condition, message string, clu
 
 	existingCondition := FindRbacCondition(conditions, conditionType)
 
+	// create a map of all unique elements in clusterRoleNames slice
+	encountered := map[string]bool{}
+	for v := range clusterRoleNames {
+		encountered[clusterRoleNames[v]] = true
+	}
+
+	// place all keys from map into result slice
+	// this prevents the duplication of clusterRoleNames
+	result := []string{}
+	for key := range encountered {
+		result = append(result, key)
+	}
+
 	if existingCondition == nil {
 		conditions = append(
 			conditions, managedv1alpha1.Condition{
 				LastTransitionTime: now,
-				ClusterRoleNames:   clusterRoleNames,
+				ClusterRoleNames:   result,
 				Message:            message,
 				Status:             status,
 				State:              state,
@@ -139,7 +152,7 @@ func UpdateCondition(conditions []managedv1alpha1.Condition, message string, clu
 			existingCondition.LastTransitionTime = now
 		}
 		existingCondition.Message = message
-		existingCondition.ClusterRoleNames = clusterRoleNames
+		existingCondition.ClusterRoleNames = result
 		existingCondition.Status = status
 		existingCondition.State = state
 	}

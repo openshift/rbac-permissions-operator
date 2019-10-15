@@ -69,10 +69,10 @@ type SubjectPermissionState string
 type SubjectPermissionType string
 
 const (
-	// SubjectPermissionCreated const for Created status
-	SubjectPermissionCreated SubjectPermissionType = "Created"
-	// SubjectPermissionFailed const for Failed status
-	SubjectPermissionFailed SubjectPermissionType = "Failed"
+	// ClusterRoleBindingCreated const for ClusterRoleBindingCreated status
+	ClusterRoleBindingCreated SubjectPermissionType = "ClusterRoleBindingCreated"
+	// RoleBindingCreated const for RoleBindingCreated status
+	RoleBindingCreated SubjectPermissionType = "RoleBindingCreated"
 	// SubjectPermissionStateCreated const for Created state
 	SubjectPermissionStateCreated SubjectPermissionState = "Created"
 	// SubjectPermissionStateFailed const for Failed state
