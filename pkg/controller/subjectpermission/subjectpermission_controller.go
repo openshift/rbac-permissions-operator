@@ -118,13 +118,14 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	// build a clusterRoleBindingNameList which consists of clusterRoleName-subjectName
-	crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
+	if len(instance.Spec.ClusterPermissions) != 0 {
+		// build a clusterRoleBindingNameList which consists of clusterRoleName-subjectName
+		crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
 
-	// check ClusterRoleBindingName
-	populateCrClusterRoleBindingNameList := populateClusterRoleBindingNames(crClusterRoleBindingNameList, clusterRoleBindingList)
+		// check ClusterRoleBindingName
+		populateCrClusterRoleBindingNameList := populateClusterRoleBindingNames(crClusterRoleBindingNameList, clusterRoleBindingList)
 
-	if len(instance.Spec.ClusterPermissions) != 0 && len(populateCrClusterRoleBindingNameList) != 0 {
+		var CreatedClusterRoleBindingCount int
 		// loop through crClusterRoleBindingNameList
 		for _, clusterRoleBindingName := range populateCrClusterRoleBindingNameList {
 			// get the clusterRoleName by spliting the clusterRoleBindng name
@@ -151,6 +152,19 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 			// Add Prometheus metrics for this CR
 			localmetrics.AddPrometheusMetric(instance)
+
+			//increment counter if successfully created clusterRoleBinding
+			CreatedClusterRoleBindingCount++
+		}
+		if len(populateCrClusterRoleBindingNameList) == CreatedClusterRoleBindingCount && len(populateCrClusterRoleBindingNameList) != 0 {
+			// update condition if all ClusterRoleBindings added succesfully
+			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Successfully created all ClusterRoleBindings", populateCrClusterRoleBindingNameList, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.ClusterRoleBindingCreated)
+			err = r.client.Status().Update(context.TODO(), instance)
+			if err != nil {
+				reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
 		}
 	}
 
@@ -162,39 +176,60 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
-	// compile list of allowed namespaces only for this subject permission. NOT a list of subject permissions
-	for _, permission := range instance.Spec.Permissions {
-
+	if len(instance.Spec.Permissions) != 0 {
+		var CreatedRoleBindingCount int
 		var successfullRoleBindingNames []string
-		// list of all namespaces in safelist
-		safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, nsList)
-		// for each safelisted namespace
-		for _, ns := range safeList {
+		// compile list of allowed namespaces only for this subject permission. NOT a list of subject permissions
+		for _, permission := range instance.Spec.Permissions {
+			// list of all namespaces in safelist
+			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, nsList)
 
-			// get a list of all rolebindings in namespace
-			rbList := &v1.RoleBindingList{}
-			opts := client.ListOptions{Namespace: ns}
-			err = r.client.List(context.TODO(), &opts, rbList)
+			var namespaceCount int
+			// for each safelisted namespace
+			for _, ns := range safeList {
+				// get a list of all rolebindings in namespace
+				rbList := &v1.RoleBindingList{}
+				opts := client.ListOptions{Namespace: ns}
+				err = r.client.List(context.TODO(), &opts, rbList)
 
-			// create roleBinding
-			roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
+				// create roleBinding
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
 
-			err := r.client.Create(context.TODO(), roleBinding)
-			if err != nil {
-				if k8serr.IsAlreadyExists(err) {
-					continue
+				err := r.client.Create(context.TODO(), roleBinding)
+				if err != nil {
+					if k8serr.IsAlreadyExists(err) {
+						continue
+					}
+
+					var permissionsClusterRoleNames []string
+					permissionsClusterRoleNames = append(permissionsClusterRoleNames, permission.ClusterRoleName)
+					return reconcile.Result{}, err
 				}
+				successfullRoleBindingNames = append(successfullRoleBindingNames, permission.ClusterRoleName)
 
-				var permissionsClusterRoleNames []string
-				permissionsClusterRoleNames = append(permissionsClusterRoleNames, permission.ClusterRoleName)
+				// log each successfully created ClusterRoleBinding
+				reqLogger.Info(fmt.Sprintf("Successfully created RoleBinding %s in namespace %s", roleBinding.Name, ns))
+				namespaceCount++
+			}
+			if len(safeList) == namespaceCount {
+				//increment roleBindingCounter
+				CreatedRoleBindingCount++
+			}
+		}
+
+		if len(instance.Spec.Permissions) == CreatedRoleBindingCount {
+			// update condition if all ClusterRoleBindings added succesfully
+			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Successfully created all roleBindings", successfullRoleBindingNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
+			err = r.client.Status().Update(context.TODO(), instance)
+			if err != nil {
+				reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
 				return reconcile.Result{}, err
 			}
-			successfullRoleBindingNames = append(successfullRoleBindingNames, permission.ClusterRoleName)
-
-			// log each successfully created ClusterRoleBinding
-			reqLogger.Info(fmt.Sprintf("Successfully created RoleBinding %s in namespace %s", roleBinding.Name, ns))
+			return reconcile.Result{}, nil
 		}
+
 	}
+
 	return reconcile.Result{}, nil
 }
 

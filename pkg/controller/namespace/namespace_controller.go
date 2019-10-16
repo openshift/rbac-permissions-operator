@@ -119,9 +119,10 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	// get namespaces allowed in each permission
 	// if our namespace instance is in the safeList, create rolebinding and update condition
 	for _, subjectPermission := range subjectPermissionList.Items {
+		var successfulClusterRoleNames []string
 		for _, permission := range subjectPermission.Spec.Permissions {
-			var successfulClusterRoleNames []string
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
+
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
 			// if namespace is in safeList, create RoleBinding
@@ -147,6 +148,13 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 			}
 			return reconcile.Result{}, nil
 		}
+		subjectPermission.Status.Conditions = controllerutil.UpdateCondition(subjectPermission.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
+		err = r.client.Status().Update(context.TODO(), &subjectPermission)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{}, nil
