@@ -4,9 +4,6 @@ metadata:
   name: example-subjectpermission
 spec:
   subjectKind: Group
-  subjectName: Test
-  permissions:
-    -
-      clusterRoleName: bar
-      namespacesAllowedRegex: openshift.*
-      allowFirst: true
+  subjectName: dedicatedadmin
+  clusterPermissions :
+    - bar

@@ -118,6 +118,20 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		return reconcile.Result{}, err
 	}
 
+	// get all ClusterRoleNames that do not exist as ClusterRole
+	clusterRoleNamesNotOnCluster := populateCrClusterRoleNames(instance, clusterRoleList)
+	if len(clusterRoleNamesNotOnCluster) != 0 {
+		// update condition if any ClusterRoleName does not exist as a ClusterRole
+		instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "ClusterRole for ClusterPermission does not exist", clusterRoleNamesNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.ClusterRoleBindingCreated)
+		err = r.client.Status().Update(context.TODO(), instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when checking ClusterRolenames that do not exist as ClusterRole")
+			return reconcile.Result{}, err
+		}
+		// exit reconcile, wait for next CR change
+		return reconcile.Result{}, nil
+	}
+
 	if len(instance.Spec.ClusterPermissions) != 0 {
 		// build a clusterRoleBindingNameList which consists of clusterRoleName-subjectName
 		crClusterRoleBindingNameList := buildClusterRoleBindingCRList(instance)
@@ -181,6 +195,20 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 		var successfullRoleBindingNames []string
 		// compile list of allowed namespaces only for this subject permission. NOT a list of subject permissions
 		for _, permission := range instance.Spec.Permissions {
+			// get all ClusterRoleNames that does not exists as RoleNames
+			clusterRoleNamesForPermissionNotOnCluster := controllerutil.PopulateCrPermissionClusterRoleNames(instance, clusterRoleList)
+			if len(clusterRoleNamesForPermissionNotOnCluster) != 0 {
+				// update condition if any ClusterRoleName does not exist as a Role
+				instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Role for Permission does not exist", clusterRoleNamesForPermissionNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.RoleBindingCreated)
+				err = r.client.Status().Update(context.TODO(), instance)
+				if err != nil {
+					reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
+					return reconcile.Result{}, err
+				}
+				// exit reconcile, wait for next CR change
+				return reconcile.Result{}, nil
+			}
+
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, nsList)
 
@@ -255,21 +283,23 @@ func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind stri
 // populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
 // returns list of ClusterRoleNames that do not exist
 func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
-	// we get clusterRoleName by managedv1alpha1.ClusterPermission{}
 	crClusterRoleNames := subjectPermission.Spec.ClusterPermissions
 
 	// items is list of clusterRole on k8s
 	onClusterItems := clusterRoleList.Items
 
 	var crClusterRoleNameList []string
+	var found bool
 
-	// for every cluster role names on cluster, loop through all crClusterRoleNames, if it doesn't exist then append
-	for _, i := range onClusterItems {
-		//name := i.Name
-		for _, a := range crClusterRoleNames {
-			if i.Name != a {
-				crClusterRoleNameList = append(crClusterRoleNameList, a)
+	// for every CR clusterRoleNames, loop through all k8s lusterRoles, if it doesn't exist then append
+	for _, i := range crClusterRoleNames {
+		for _, a := range onClusterItems {
+			if i == a.Name {
+				found = true
 			}
+		}
+		if !found {
+			crClusterRoleNameList = append(crClusterRoleNameList, i)
 		}
 	}
 

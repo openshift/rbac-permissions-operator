@@ -22,12 +22,16 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 	permissions := subjectPermission.Spec.Permissions
 
 	var permissionClusterRoleNames []string
+	var found bool
 
-	for _, i := range clusterRoleList.Items {
-		for _, a := range permissions {
-			if i.Name != a.ClusterRoleName {
-				permissionClusterRoleNames = append(permissionClusterRoleNames, a.ClusterRoleName)
+	for _, i := range permissions {
+		for _, a := range clusterRoleList.Items {
+			if i.ClusterRoleName == a.Name {
+				found = true
 			}
+		}
+		if !found {
+			permissionClusterRoleNames = append(permissionClusterRoleNames, i.ClusterRoleName)
 		}
 	}
 
