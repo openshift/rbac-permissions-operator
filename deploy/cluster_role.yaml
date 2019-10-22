@@ -25,7 +25,12 @@ rules:
   - rolebindings
   - roles
   verbs:
-  - '*'
+  - create
+  - get
+  - list 
+  - watch
+  - update
+  - delete
 - apiGroups:
   - monitoring.coreos.com
   resources:
@@ -36,6 +41,6 @@ rules:
 - apiGroups:
   - managed.openshift.io
   resources:
-  - subjectpermissions
+  - '*'
   verbs:
   - '*'
