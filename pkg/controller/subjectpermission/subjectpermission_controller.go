@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	k8scontrollerutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -53,6 +54,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+
+	// Watch for changes to secondary resource RoleBindings and requeue the owner SubjecPermission
+	err = c.Watch(&source.Kind{Type: &v1.RoleBinding{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &managedv1alpha1.SubjectPermission{},
+	})
 
 	return nil
 }
@@ -221,6 +228,11 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				// log each successfully created ClusterRoleBinding
 				reqLogger.Info(fmt.Sprintf("Successfully created RoleBinding %s in namespace %s", roleBinding.Name, ns))
 				namespaceCount++
+
+				// Set SubjectPermission instance as the owner and controller
+				if err = k8scontrollerutil.SetControllerReference(instance, roleBinding, r.scheme); err != nil {
+					return reconcile.Result{}, err
+				}
 			}
 			if len(safeList) == namespaceCount {
 				//increment roleBindingCounter
