@@ -145,6 +145,8 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
 					return reconcile.Result{}, err
 				}
+				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
+				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}
 			return reconcile.Result{}, nil
 		}

@@ -145,7 +145,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				return reconcile.Result{}, err
 			}
 		} else {
-			reqLogger.Info("2")
+			clusterRoleBindingName := fmt.Sprintf("%s-%s", clusterRoleName, instance.Spec.SubjectName)
+			reqLogger.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", clusterRoleBindingName))
 			// Created the ClusterRoleBinding, update status later
 			createdClusterRoleBinding = true
 		}
