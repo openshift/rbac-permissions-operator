@@ -1,28 +1,67 @@
 apiVersion: v1
 kind: Template
-metadata:
-  name: olm-artifacts-template
-
 parameters:
 - name: REGISTRY_IMG
   required: true
 - name: CHANNEL
   value: staging
+  required: true
 - name: IMAGE_TAG
-  value: latest
-
+  required: true
+- name: REPO_NAME
+  value: rbac-permissions-operator
+  required: true
+metadata:
+  name: selectorsyncset-template
 objects:
 - apiVersion: hive.openshift.io/v1alpha1
   kind: SelectorSyncSet
   metadata:
-    generation: 1
+    labels:
+      managed.openshift.io/gitHash: ${IMAGE_TAG}
+      managed.openshift.io/gitRepoName: ${REPO_NAME}
+      managed.openshift.io/osd: 'true'
     name: rbac-permissions-operator
   spec:
     clusterDeploymentSelector:
       matchLabels:
-        api.openshift.com/managed: "true"
+        api.openshift.com/managed: 'true'
     resourceApplyMode: sync
     resources:
+    - apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: openshift-rbac-permissions
+      labels:
+        openshift.io/cluster-monitoring: 'true'
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: prometheus-k8s
+        namespace: openshift-rbac-permissions
+      rules:
+      - apiGroups:
+        - ''
+        resources:
+        - services
+        - endpoints
+        - pods
+        verbs:
+        - get
+        - list
+        - watch
+    - apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: prometheus-k8s
+        namespace: openshift-rbac-permissions
+      roleRef:
+        kind: Role
+        name: prometheus-k8s
+      subjects:
+      - kind: ServiceAccount
+        name: prometheus-k8s
+        namespace: openshift-monitoring
     - apiVersion: operators.coreos.com/v1alpha1
       kind: CatalogSource
       metadata:
@@ -30,22 +69,30 @@ objects:
           opsrc-datastore: "true"
           opsrc-provider: redhat
         name: rbac-permissions-operator-registry
-        namespace: openshift-monitoring
+        namespace: openshift-rbac-permissions
       spec:
         image: ${REGISTRY_IMG}:${CHANNEL}-${IMAGE_TAG}
-        displayName: Rbac Permissions Operator
+        displayName: RBAC Permissions Operator
         icon:
-          base64data: ""
-          mediatype: ""
+          base64data: ''
+          mediatype: ''
         publisher: Red Hat
         sourceType: grpc
     - apiVersion: operators.coreos.com/v1alpha1
       kind: Subscription
       metadata:
         name: rbac-permissions-operator
-        namespace: openshift-monitoring
+        namespace: openshift-rbac-permissions
       spec:
         channel: ${CHANNEL}
         name: rbac-permissions-operator
         source: rbac-permissions-operator-registry
-        sourceNamespace: openshift-monitoring
+        sourceNamespace: openshift-rbac-permissions
+    - apiVersion: operators.coreos.com/v1alpha2
+      kind: OperatorGroup
+      metadata:
+        name: rbac-permissions-operator
+        namespace: openshift-rbac-permissions
+      spec:
+        targetNamespaces:
+        - openshift-rbac-permissions
