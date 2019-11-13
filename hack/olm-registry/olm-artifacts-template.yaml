@@ -49,3 +49,11 @@ objects:
         name: rbac-permissions-operator
         source: rbac-permissions-operator-registry
         sourceNamespace: openshift-monitoring
+    - apiVersion:  operators.coreos.com/v1alpha1
+      kind: OperatorGroup
+      metadata:
+        name: rbac-permissions-operator
+        namespace: openshift-rbac-permissions
+      spec:
+        targetNamespaces:
+        - openshift-rbac-permissions
