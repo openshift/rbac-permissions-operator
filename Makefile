@@ -10,7 +10,7 @@ default: gobuild
 
 # Build the docker image
 .PHONY: docker-build
-docker-build: operator-sdk-generate
+docker-build:
 	$(MAKE) build
 
 # Push the docker image
