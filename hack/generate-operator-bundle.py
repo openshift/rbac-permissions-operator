@@ -33,12 +33,18 @@ rbac_permissions_operator_image = sys.argv[5]
 full_version = "%s.%s-%s" % (VERSION_BASE, git_num_commits, git_hash)
 print("Generating CSV for version: %s" % full_version)
 
+with open('config/templates/rbac-permissions-operator-csv-template.yaml', 'r') as stream:
+    csv = yaml.load(stream)
+
 if not os.path.exists(outdir):
     os.mkdir(outdir)
 
 version_dir = os.path.join(outdir, full_version)
 if not os.path.exists(version_dir):
     os.mkdir(version_dir)
+
+# Initialize CRD array in CSV
+csv['spec']['customresourcedefinitions']['owned'] = []
 
 # Copy all CSV files over to the bundle output dir:
 # Copy all CRD files over to the bundle output dir:
@@ -47,17 +53,19 @@ for file_name in crd_files:
     full_path = os.path.join('deploy/crds', file_name)
     if (os.path.isfile(os.path.join('deploy/crds', file_name))):
         shutil.copy(full_path, os.path.join(version_dir, file_name))
-
-# Copy all prometheus yaml files over to the bundle output dir:
-prom_files = [ f for f in os.listdir('deploy/prometheus') if f.endswith('.yaml') ]
-for file_name in prom_files:
-    full_path = os.path.join('deploy/prometheus', file_name)
-    if (os.path.isfile(os.path.join('deploy/prometheus', file_name))):
-        shutil.copy(full_path, os.path.join(version_dir, file_name))
-
-
-with open('config/templates/rbac-permissions-operator-csv-template.yaml', 'r') as stream:
-    csv = yaml.load(stream)
+    # Load CRD so we can use attributes from it
+    with open("deploy/crds/{}".format(file_name), "r") as stream:
+        crd = yaml.load(stream)
+    # Update CSV template customresourcedefinitions key
+    csv['spec']['customresourcedefinitions']['owned'].append(
+        {
+            "name": crd["metadata"]["name"],
+            "description": crd["spec"]["names"]["kind"],
+            "displayName": crd["spec"]["names"]["kind"],
+            "kind": crd["spec"]["names"]["kind"],
+            "version": crd["spec"]["version"]
+        }
+    )
 
 csv['spec']['install']['spec']['clusterPermissions'] = []
 
@@ -68,15 +76,6 @@ with open('deploy/cluster_role.yaml', 'r') as stream:
         {
             'rules': operator_role['rules'],
             'serviceAccountName': 'rbac-permissions-operator',
-        })
-
-# Add rbac-permissions-operator-client role to the CSV:
-with open('deploy/uhc_cluster_role.yaml', 'r') as stream:
-    operator_role = yaml.load(stream)
-    csv['spec']['install']['spec']['clusterPermissions'].append(
-        {
-            'rules': operator_role['rules'],
-            'serviceAccountName': 'rbac-permissions-operator-client',
         })
 
 # Add our deployment spec for the hive operator:
@@ -107,4 +106,3 @@ csv_file = os.path.join(version_dir, csv_filename)
 with open(csv_file, 'w') as outfile:
     yaml.dump(csv, outfile, default_flow_style=False)
 print("Wrote ClusterServiceVersion: %s" % csv_file)
-
