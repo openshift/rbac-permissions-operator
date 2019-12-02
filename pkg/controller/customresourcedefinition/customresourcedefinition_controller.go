@@ -3,8 +3,10 @@ package customresourcedefinition
 import (
 	"context"
 
+	v1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -94,9 +96,61 @@ func (r *ReconcileCustomResourceDefinition) Reconcile(request reconcile.Request)
 		return reconcile.Result{}, err
 	}
 
-	// for _, crd := range crdList. {
+	// 1. Check if CRD is already on cluster
+	// 2. If CRD is not on cluster, check if it is cluster or ns scoped
+	// if cluster scoped - create RB to dedicated-admins-cluster-crds role
+	// if ns scoped - create dedicated-admins-project-crds role
+	// 3. If CRDs match blocklist, by RESOURCE or apiGROUP name will NOT be added
+	// 4. If CRDs deleted from cluster, remove the role
 
-	// }
+	// loop through all the CRDs on cluster
+	for _, crd := range crdList.Items {
+		// check if CRD exists
+		if instance.Name == crd.Name {
+			reqLogger.Error(err, "CRD already exists on cluster")
+			return reconcile.Result{}, err
+		}
+
+		// if cluster scoped
+		if instance.Spec.Scope == apiextensionsv1.ClusterScoped {
+			// create RB to dedicated-admins-cluster-crds role
+			roleBinding := NewRoleBindingForCRD("dedicated-admins-cluster-crds")
+
+			err := r.client.Create(context.TODO(), roleBinding)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		}
+
+		// if ns scoped
+		if instance.Spec.Scope == apiextensionsv1.NamespaceScoped {
+			// create RB to dedicated-admins-project-crds role
+			roleBinding := NewRoleBindingForCRD("dedicated-admins-project-crds")
+
+			err := r.client.Create(context.TODO(), roleBinding)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		}
+
+	}
 
 	return reconcile.Result{}, nil
+}
+
+func NewRoleBindingForCRD(roleName string) *v1.RoleBinding {
+	return &v1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: roleName + "- binding",
+		},
+		Subjects: []v1.Subject{
+			{},
+		},
+		RoleRef: v1.RoleRef{
+			Kind: "Role",
+			Name: roleName,
+		},
+	}
 }
