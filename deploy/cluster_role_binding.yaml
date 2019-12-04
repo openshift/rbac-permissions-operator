@@ -8,5 +8,5 @@ subjects:
   namespace: openshift-rbac-permissions
 roleRef:
   kind: ClusterRole
-  name: cluster-admin
+  name: rbac-permissions-operator-cluster-admin
   apiGroup: rbac.authorization.k8s.io
