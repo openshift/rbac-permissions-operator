@@ -30,9 +30,40 @@ To test a new version of the operator locally using CRC you need to:
 ## Namespace Controller
 
 Watch for the creation of new `Namespaces` that passes through NamespacesAllowedRegex and NamespacesDeniedRegex. When discovered
-create `RoleBindings` in that namespace to the corresponding k8s subject
+create `RoleBindings` in that namespace to the corresponding subject.
 
 ## SubjectPermission Controller
 
-Watch for the changes in a SubjectPermission CR. If the `ClusterRoleBinding` does not already exist on the cluster, create the 
-correct ClusterRoleBinding. If the `RoleBinding` does not ready exist on the cluster, create the correct RoleBinding.
+The subjectpermission-controller is triggered by a new SubjectPermission CR or a change to an existing SubjectPermission CR. It is 
+responsible for the creation of `ClusterRoleBinding` and `Rolebinding`. It looks at the `subjectName` and the `clusterRoleName` passed 
+in by the SubjectPermission CR. If corresponding `ClusterRoleBinding` and/or `RoleBinding` do not exist then create them.
+
+# Custom Resources
+
+## SubjecPermission CR
+
+The SubjectPermission CR holds the `SubjectKind`, `SubjectName`, `clusterPermissions`, and `permissions` needed to configure the rbac policies needed for any given subject. All configurations can be found at [managed-cluster-config](https://github.com/openshift/managed-cluster-config/tree/master/deploy/rbac-permissions-operator-config "rbac-permissions-operator-config") 
+
+```yaml
+apiVersion: managed.openshift.io/v1alpha1
+kind: SubjectPermission
+metadata:
+  name: dedicated-admins
+  namespace: openshift-rbac-permissions
+spec:
+  subjectKind: Group
+  subjectName: dedicated-admins
+  clusterPermissions:
+    - dedicated-admins-cluster
+  permissions:
+    - 
+      clusterRoleName: dedicated-admins-project
+      namespacesAllowedRegex: ".*"
+      namespacesDeniedRegex: "(^kube-.*|^openshift.*|^ops-health-monitoring$|^management-infra$|^default$|^logging$|^sre-app-check$)"
+      allowFirst: true
+    - 
+      clusterRoleName: admin 
+      namespacesAllowedRegex: ".*" 
+      namespacesDeniedRegex: "(^kube-.*|^openshift.*|^ops-health-monitoring$|^management-infra$|^default$|^logging$|^sre-app-check$)" 
+      allowFirst: true
+```
