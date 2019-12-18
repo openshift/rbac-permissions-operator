@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/rbac-permissions-operator/pkg/apis"
 	"github.com/openshift/rbac-permissions-operator/pkg/controller"
 
+	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
@@ -108,6 +109,11 @@ func main() {
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := monitoringv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "error registering prometheus monitoring objects")
 		os.Exit(1)
 	}
 
