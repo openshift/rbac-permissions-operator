@@ -129,9 +129,9 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 			if namespaceInSlice(instance.Name, safeList) {
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
-				// if rolebinding is already created in the namespace, there's nothing to do
+				// if rolebinding is already created in the namespace, continue to next iteration
 				if rolebindingInNamespace(roleBinding, roleBindingList) {
-					return reconcile.Result{}, nil
+					continue
 				}
 
 				err := r.client.Create(context.TODO(), roleBinding)
@@ -148,7 +148,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
 				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}
-			return reconcile.Result{}, nil
 		}
 		subjectPermission.Status.Conditions = controllerutil.UpdateCondition(subjectPermission.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
 		err = r.client.Status().Update(context.TODO(), &subjectPermission)
@@ -156,7 +155,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{}, nil
