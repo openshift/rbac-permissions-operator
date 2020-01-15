@@ -38,7 +38,7 @@ var (
 	metricsPort int32 = 8383
 
 	osdMetricsPort = "8181"
-	osdMetricsPath = "/osdmetrics"
+	osdMetricsPath = "/metrics"
 )
 var log = logf.Log.WithName("cmd")
 
