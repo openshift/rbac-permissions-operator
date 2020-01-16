@@ -13,6 +13,18 @@ spec:
         name: rbac-permissions-operator
     spec:
       serviceAccountName: rbac-permissions-operator
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: Exists
+            weight: 1
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/infra
+          operator: Exists
       containers:
         - name: rbac-permissions-operator
           # Replace this with the built image name
