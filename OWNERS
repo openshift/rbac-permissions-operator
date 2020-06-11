@@ -1,17 +1,12 @@
-approvers:
-- drewandersonnz
-- c-e-brumm
-- jharrington22
-- rogbas
-- jewzaam
-- mwoodson
-- lisa
 reviewers:
-- jewzaam
-- mwoodson
-- lisa
-- fahlmant
 - sam-nguyen7
-- liamwazherealso
-- rafael-azevedo
+- fahlmant
+- lisa
 - clcollins
+- iamkirkbater
+approvers:
+- fahlmant
+- lisa
+- rogbas
+maintainers:
+- rogbas
