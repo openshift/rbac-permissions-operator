@@ -18,8 +18,8 @@ import (
 	"testing"
 )
 
-// TestBlacklist exercises the comma-separating in IsBlackListedNamespace
-func TestBlacklist(t *testing.T) {
+// TestDenylist exercises the comma-separating in IsDenyListedNamespace
+func TestDenylist(t *testing.T) {
 	var tests = []struct {
 		configmapstring string // what we might expect from the ConfigMap
 		challenge       string // what would the test namespace be against the regexp?
@@ -37,7 +37,7 @@ func TestBlacklist(t *testing.T) {
 		{"^(kube-(system|default|foo)|openshift-.*).*$", "kube-baz", false},
 	}
 	for _, test := range tests {
-		if IsBlackListedNamespace(test.challenge, test.configmapstring) != test.valid {
+		if IsDenyListedNamespace(test.challenge, test.configmapstring) != test.valid {
 			t.Errorf("challenge `%s` against regex str `%s` not %t (got %t)", test.challenge, test.configmapstring, test.valid, !test.valid)
 		}
 	}
