@@ -23,8 +23,8 @@ git clone \
 REMOVED_VERSIONS=""
 if [[ "$REMOVE_UNDEPLOYED" == true ]]; then
     DEPLOYED_HASH=$(
-        curl -s 'https://gitlab.cee.redhat.com/service/saas-osd-operators/raw/master/rbac-permissions-operator-services/rbac-permissions-operator.yaml' | \
-            docker run --rm -i evns/yq -r '.services[]|select(.name="rbac-permissions-operator").hash'
+        curl -s "https://gitlab.cee.redhat.com/service/app-interface/raw/master/data/services/osd-operators/cicd/saas/saas-rbac-permissions-operator.yaml" | \
+            docker run --rm -i evns/yq -r '.resourceTemplates[]|select(.name="rbac-permissions-operator").targets[]|select(.namespace["$ref"]=="/services/osd-operators/namespaces/hive-production-cluster-scope.yml")|.ref'
     )
 
     delete=false
