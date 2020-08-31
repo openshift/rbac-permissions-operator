@@ -1,4 +1,4 @@
-// Copyright 2018 RedHat
+// Copyright 2017, OpenCensus Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
-
-const (
-	OperatorConfigMapName string = "dedicated-admin-operator-config"
-	OperatorName          string = "dedicated-admin-operator"
-	OperatorNamespace     string = "openshift-dedicated-admin"
-	DenylistRegex         string = "^kube-.*,^openshift.*,^default$"
-)
+// Package ocgrpc contains OpenCensus stats and trace
+// integrations for gRPC.
+//
+// Use ServerHandler for servers and ClientHandler for clients.
+package ocgrpc // import "go.opencensus.io/plugin/ocgrpc"
