@@ -37,7 +37,8 @@ replace (
 
 replace (
 	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.29.0
-	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.9.0
+	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.10.0
+	github.com/prometheus/prometheus => github.com/prometheus/prometheus v0.0.0-20190424153033-d3245f150225
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
 	k8s.io/kube-state-metrics => k8s.io/kube-state-metrics v1.6.0
