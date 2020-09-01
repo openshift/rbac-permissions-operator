@@ -72,12 +72,12 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
+# github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad
 github.com/openshift/api/route/v1
 # github.com/openshift/operator-custom-metrics v0.2.1
 ## explicit
 github.com/openshift/operator-custom-metrics/pkg/metrics
-# github.com/operator-framework/operator-sdk v0.14.0
+# github.com/operator-framework/operator-sdk v0.15.2
 ## explicit
 github.com/operator-framework/operator-sdk/pkg/k8sutil
 github.com/operator-framework/operator-sdk/pkg/leader
@@ -436,3 +436,4 @@ sigs.k8s.io/yaml
 # k8s.io/metrics => k8s.io/metrics v0.0.0-20191016113814-3b1a734dba6e
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191016112829-06bb3c9d77c9
 # github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
+# github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad
