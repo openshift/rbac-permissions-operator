@@ -1,17 +1,14 @@
 module github.com/openshift/rbac-permissions-operator
 
+go 1.14
+
 require (
 	github.com/coreos/prometheus-operator v0.34.0
-	github.com/go-openapi/spec v0.19.2
-	github.com/google/go-cmp v0.3.1 // indirect
+	github.com/go-openapi/spec v0.19.4
 	github.com/openshift/operator-custom-metrics v0.2.1
-	github.com/operator-framework/operator-sdk v0.13.0
-	github.com/prometheus/client_golang v1.1.0
-	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
+	github.com/operator-framework/operator-sdk v0.14.0
+	github.com/prometheus/client_golang v1.2.1
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
-	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
@@ -46,10 +43,4 @@ replace (
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191016112829-06bb3c9d77c9
 )
 
-replace (
-	git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
-	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.31.1
-	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20190525122359-d20e84d0fb64
-)
-
-go 1.13
+replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309 // Required by Helm
