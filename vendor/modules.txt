@@ -77,7 +77,7 @@ github.com/openshift/api/route/v1
 # github.com/openshift/operator-custom-metrics v0.2.1
 ## explicit
 github.com/openshift/operator-custom-metrics/pkg/metrics
-# github.com/operator-framework/operator-sdk v0.15.2
+# github.com/operator-framework/operator-sdk v0.16.0
 ## explicit
 github.com/operator-framework/operator-sdk/pkg/k8sutil
 github.com/operator-framework/operator-sdk/pkg/leader
