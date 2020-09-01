@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -92,15 +92,14 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 	}
 
 	namespaceList := &corev1.NamespaceList{}
-	opts := client.ListOptions{}
-	err = r.client.List(context.TODO(), &opts, namespaceList)
+	err = r.client.List(context.TODO(), namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
 		return reconcile.Result{}, err
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
-	err = r.client.List(context.TODO(), &opts, subjectPermissionList)
+	err = r.client.List(context.TODO(), subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
@@ -108,8 +107,10 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 
 	roleBindingList := &v1.RoleBindingList{}
 	// request.Name is the instance namespace we are reconciling
-	opts = client.ListOptions{Namespace: request.Name}
-	err = r.client.List(context.TODO(), &opts, roleBindingList)
+	opts := []client.ListOption{
+		client.InNamespace(request.Name),
+	}
+	err = r.client.List(context.TODO(), roleBindingList, opts...)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
 		return reconcile.Result{}, err
