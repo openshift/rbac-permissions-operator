@@ -475,9 +475,9 @@ func (p *pass) assumeSiblingImportsValid() {
 		}
 		for left, rights := range refs {
 			if imp, ok := importsByName[left]; ok {
-				if _, ok := stdlib[imp.ImportPath]; ok {
+				if m, ok := stdlib[imp.ImportPath]; ok {
 					// We have the stdlib in memory; no need to guess.
-					rights = stdlib[imp.ImportPath]
+					rights = copyExports(m)
 				}
 				p.addCandidate(imp, &packageInfo{
 					// no name; we already know it.
@@ -584,6 +584,31 @@ func getFixes(fset *token.FileSet, f *ast.File, filename string, env *ProcessEnv
 	return fixes, nil
 }
 
+// getAllCandidates gets all of the candidates to be imported, regardless of if they are needed.
+func getAllCandidates(filename string, env *ProcessEnv) ([]ImportFix, error) {
+	// TODO(suzmue): scan for additional candidates and filter out
+	// current package.
+
+	// Get the stdlib candidates and sort by import path.
+	var paths []string
+	for importPath := range stdlib {
+		paths = append(paths, importPath)
+	}
+	sort.Strings(paths)
+
+	var imports []ImportFix
+	for _, importPath := range paths {
+		imports = append(imports, ImportFix{
+			StmtInfo: ImportInfo{
+				ImportPath: importPath,
+			},
+			IdentName: path.Base(importPath),
+			FixType:   AddImport,
+		})
+	}
+	return imports, nil
+}
+
 // ProcessEnv contains environment variables and settings that affect the use of
 // the go command, the go/build package, etc.
 type ProcessEnv struct {
@@ -687,9 +712,10 @@ func cmdDebugStr(cmd *exec.Cmd) string {
 
 func addStdlibCandidates(pass *pass, refs references) {
 	add := func(pkg string) {
+		exports := copyExports(stdlib[pkg])
 		pass.addCandidate(
 			&ImportInfo{ImportPath: pkg},
-			&packageInfo{name: path.Base(pkg), exports: stdlib[pkg]})
+			&packageInfo{name: path.Base(pkg), exports: exports})
 	}
 	for left := range refs {
 		if left == "rand" {
@@ -1357,4 +1383,12 @@ type visitFn func(node ast.Node) ast.Visitor
 
 func (fn visitFn) Visit(node ast.Node) ast.Visitor {
 	return fn(node)
+}
+
+func copyExports(pkg map[string]bool) map[string]bool {
+	m := make(map[string]bool, len(pkg))
+	for k, v := range pkg {
+		m[k] = v
+	}
+	return m
 }
