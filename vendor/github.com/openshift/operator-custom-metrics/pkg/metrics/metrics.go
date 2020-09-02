@@ -19,6 +19,7 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // StartMetrics starts the server based on the metricsConfig provided by the user.
@@ -28,7 +29,7 @@ func StartMetrics(config metricsConfig) {
 		RegisterMetrics(config.collectorList)
 	}
 
-	http.Handle(config.metricsPath, prometheus.Handler())
+	http.Handle(config.metricsPath, promhttp.Handler())
 	log.Info(fmt.Sprintf("Port: %s", config.metricsPort))
 	metricsPort := ":" + (config.metricsPort)
 	go http.ListenAndServe(metricsPort, nil)

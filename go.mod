@@ -3,9 +3,9 @@ module github.com/openshift/rbac-permissions-operator
 go 1.14
 
 require (
-	github.com/coreos/prometheus-operator v0.34.0
+	github.com/coreos/prometheus-operator v0.35.1
 	github.com/go-openapi/spec v0.19.4
-	github.com/openshift/operator-custom-metrics v0.2.1
+	github.com/openshift/operator-custom-metrics v0.3.0
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/prometheus/client_golang v1.2.1
 	github.com/spf13/pflag v1.0.5

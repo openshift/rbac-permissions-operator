@@ -1,6 +1,10 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
+)
 
 // Default variables for metrics-path and metrics-port.
 const (
@@ -39,6 +43,9 @@ func (b *metricsConfigBuilder) WithPort(port string) *metricsConfigBuilder {
 
 // WithPath updates the metrics path to the value provided by the user.
 func (b *metricsConfigBuilder) WithPath(path string) *metricsConfigBuilder {
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
 	b.config.metricsPath = path
 	return b
 }
