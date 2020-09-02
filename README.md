@@ -40,7 +40,7 @@ in by the SubjectPermission CR. If corresponding `ClusterRoleBinding` and/or `Ro
 
 # Custom Resources
 
-## SubjecPermission CR
+## SubjectPermission CR
 
 The SubjectPermission CR holds the `SubjectKind`, `SubjectName`, `clusterPermissions`, and `permissions` needed to configure the rbac policies needed for any given subject. All configurations can be found at [managed-cluster-config](https://github.com/openshift/managed-cluster-config/tree/master/deploy/rbac-permissions-operator-config "rbac-permissions-operator-config") 
 
