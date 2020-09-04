@@ -91,7 +91,7 @@ REGISTRY_IMG="quay.io/app-sre/rbac-permissions-operator-registry"
 DOCKERFILE_REGISTRY="Dockerfile.olm-registry"
 
 cat <<EOF > $DOCKERFILE_REGISTRY
-FROM quay.io/openshift/origin-operator-registry:latest
+FROM quay.io/openshift/origin-operator-registry:4.5
 
 COPY $SAAS_OPERATOR_DIR manifests
 RUN initializer --permissive
