@@ -7,9 +7,6 @@ import (
 	"os"
 	"runtime"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
 	operatorconfig "github.com/openshift/rbac-permissions-operator/config"
 	"github.com/openshift/rbac-permissions-operator/pkg/apis"
 	"github.com/openshift/rbac-permissions-operator/pkg/controller"
@@ -18,17 +15,17 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
-	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	"github.com/operator-framework/operator-sdk/pkg/restmapper"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 
 	// OSD metrics
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
+
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 )
 
@@ -121,12 +118,6 @@ func main() {
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
-	}
-
-	// Create Service object to expose the metrics port.
-	_, err = metrics.ExposeMetricsPort(ctx, metricsPort)
-	if err != nil {
-		log.Info(err.Error())
 	}
 
 	metricsServer := osdmetrics.NewBuilder().

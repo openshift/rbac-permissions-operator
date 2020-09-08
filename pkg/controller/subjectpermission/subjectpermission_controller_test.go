@@ -170,10 +170,11 @@ func TestPopulateCrPermissionClusterRoleNames(t *testing.T) {
 
 	// get empty ClusterRoleList and give it a namespace
 	list := &rbacv1.ClusterRoleList{}
-	opts := client.ListOptions{Namespace: ""}
-
+	opts := []client.ListOption{
+		client.InNamespace(""),
+	}
 	// create clusterRoleList{}
-	err = reconciler.client.List(ctx, &opts, list)
+	err = reconciler.client.List(ctx, list, opts...)
 	if err != nil {
 		t.Errorf("Couldn't get clusterRoleList for test: %s", err)
 	}
@@ -218,10 +219,11 @@ func TestClusterRoleNamesAvailableInCrButNotInCluster(t *testing.T) {
 
 	// get empty ClusterRoleList and give it a namespace
 	list := &rbacv1.ClusterRoleList{}
-	opts := client.ListOptions{Namespace: ""}
-
+	opts := []client.ListOption{
+		client.InNamespace(""),
+	}
 	// create clusterRoleList{}
-	err = reconciler.client.List(ctx, &opts, list)
+	err = reconciler.client.List(ctx, list, opts...)
 	if err != nil {
 		t.Errorf("Couldn't get clusterRoleList for test: %s", err)
 	}

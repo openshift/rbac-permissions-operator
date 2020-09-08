@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -102,8 +102,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// get list of clusterRole on k8s
 	clusterRoleList := &v1.ClusterRoleList{}
-	opts := client.ListOptions{}
-	err = r.client.List(context.TODO(), &opts, clusterRoleList)
+	err = r.client.List(context.TODO(), clusterRoleList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleList")
 		return reconcile.Result{}, err
@@ -111,7 +110,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// get a list of clusterRoleBinding from k8s cluster list
 	clusterRoleBindingList := &v1.ClusterRoleBindingList{}
-	err = r.client.List(context.TODO(), &opts, clusterRoleBindingList)
+	err = r.client.List(context.TODO(), clusterRoleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
@@ -167,7 +166,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 
 	// get the NamespaceList
 	nsList := &corev1.NamespaceList{}
-	err = r.client.List(context.TODO(), &opts, nsList)
+	err = r.client.List(context.TODO(), nsList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get NamespaceList")
 		return reconcile.Result{}, err
@@ -200,8 +199,10 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 			for _, ns := range safeList {
 				// get a list of all rolebindings in namespace
 				rbList := &v1.RoleBindingList{}
-				opts := client.ListOptions{Namespace: ns}
-				err = r.client.List(context.TODO(), &opts, rbList)
+				opts := []client.ListOption{
+					client.InNamespace(ns),
+				}
+				err = r.client.List(context.TODO(), rbList, opts...)
 
 				// create roleBinding
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
