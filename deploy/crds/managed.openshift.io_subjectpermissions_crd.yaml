@@ -14,20 +14,22 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: SubjectPermission is the Schema for the subjectpermissions API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
+          description: SubjectPermissionSpec defines the desired state of SubjectPermission
           properties:
             clusterPermissions:
               description: List of permissions applied at Cluster scope
@@ -37,6 +39,8 @@ spec:
             permissions:
               description: List of permissions applied at Namespace scope
               items:
+                description: Permission defines a Role that is bound to the Subject
+                  Allowed in specific Namespaces
                 properties:
                   allowFirst:
                     description: Flag to indicate if "allow" regex is applied first
@@ -54,8 +58,8 @@ spec:
                     description: NamespacesDeniedRegex representing denied Namespaces
                     type: string
                 required:
-                - clusterRoleName
                 - allowFirst
+                - clusterRoleName
                 type: object
               type: array
             subjectKind:
@@ -70,10 +74,13 @@ spec:
           - subjectName
           type: object
         status:
+          description: SubjectPermissionStatus defines the observed state of SubjectPermission
           properties:
             conditions:
               description: List of conditions for the CR
               items:
+                description: Condition defines a single condition of running the operator
+                  against an instance of the SubjectPermission CR
                 properties:
                   clusterRoleName:
                     description: ClusterRoleName in which this condition is true
@@ -100,8 +107,8 @@ spec:
                     type: string
                 required:
                 - lastTransitionTime
-                - status
                 - state
+                - status
                 type: object
               type: array
             state:
@@ -110,6 +117,7 @@ spec:
           required:
           - state
           type: object
+      type: object
   version: v1alpha1
   versions:
   - name: v1alpha1
