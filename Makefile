@@ -20,5 +20,5 @@ docker-push:
 
 .PHONY: operator-sdk-generate
 operator-sdk-generate:
-	operator-sdk generate openapi
+	operator-sdk generate crds
 	operator-sdk generate k8s
