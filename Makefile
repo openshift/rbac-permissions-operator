@@ -1,3 +1,5 @@
+include boilerplate/generated-includes.mk
+
 SHELL := /usr/bin/env bash
 
 # Include shared Makefiles
@@ -22,3 +24,7 @@ docker-push:
 operator-sdk-generate:
 	operator-sdk generate openapi
 	operator-sdk generate k8s
+
+.PHONY: boilerplate-update
+boilerplate-update:
+	@boilerplate/update
