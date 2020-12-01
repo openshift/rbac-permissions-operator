@@ -17,13 +17,6 @@ package dedicatedadmin
 import (
 	"regexp"
 	"strings"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	log      = logf.Log.WithName("dedicatedadmin")
-	daLogger = log.WithValues("DedicatedAdmin", "functions")
 )
 
 // GetAllowedNamespaces returns a list of all namespaces that are allowed based on the input data.  Empty string regex is treated as unset.

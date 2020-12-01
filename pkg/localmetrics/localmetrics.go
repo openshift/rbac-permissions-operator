@@ -4,14 +4,9 @@ import (
 	"fmt"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/prometheus/client_golang/prometheus"
-)
-
-const (
-	clusterScope   = "cluster"
-	namespaceScope = "namespace"
 )
 
 var (
