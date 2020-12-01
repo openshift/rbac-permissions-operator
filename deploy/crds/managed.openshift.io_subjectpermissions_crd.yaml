@@ -17,14 +17,10 @@ spec:
       description: SubjectPermission is the Schema for the subjectpermissions API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -39,17 +35,13 @@ spec:
             permissions:
               description: List of permissions applied at Namespace scope
               items:
-                description: Permission defines a Role that is bound to the Subject
-                  Allowed in specific Namespaces
+                description: Permission defines a Role that is bound to the Subject Allowed in specific Namespaces
                 properties:
                   allowFirst:
-                    description: Flag to indicate if "allow" regex is applied first
-                      If 'true' order is Allow then Deny, Else order is Deny then
-                      Allow
+                    description: Flag to indicate if "allow" regex is applied first If 'true' order is Allow then Deny, Else order is Deny then Allow
                     type: boolean
                   clusterRoleName:
-                    description: ClusterRoleName to bind to the Subject as a RoleBindings
-                      in allowed Namespaces
+                    description: ClusterRoleName to bind to the Subject as a RoleBindings in allowed Namespaces
                     type: string
                   namespacesAllowedRegex:
                     description: NamespacesAllowedRegex representing allowed Namespaces
@@ -58,20 +50,19 @@ spec:
                     description: NamespacesDeniedRegex representing denied Namespaces
                     type: string
                 required:
-                - allowFirst
-                - clusterRoleName
+                  - allowFirst
+                  - clusterRoleName
                 type: object
               type: array
             subjectKind:
-              description: Kind of the Subject that is being granted permissions by
-                the operator
+              description: Kind of the Subject that is being granted permissions by the operator
               type: string
             subjectName:
               description: Name of the Subject granted permissions by the operator
               type: string
           required:
-          - subjectKind
-          - subjectName
+            - subjectKind
+            - subjectName
           type: object
         status:
           description: SubjectPermissionStatus defines the observed state of SubjectPermission
@@ -79,8 +70,7 @@ spec:
             conditions:
               description: List of conditions for the CR
               items:
-                description: Condition defines a single condition of running the operator
-                  against an instance of the SubjectPermission CR
+                description: Condition defines a single condition of running the operator against an instance of the SubjectPermission CR
                 properties:
                   clusterRoleName:
                     description: ClusterRoleName in which this condition is true
@@ -88,8 +78,7 @@ spec:
                       type: string
                     type: array
                   lastTransitionTime:
-                    description: LastTransitionTime is the last time this condition
-                      was active for the CR
+                    description: LastTransitionTime is the last time this condition was active for the CR
                     format: date-time
                     type: string
                   message:
@@ -99,27 +88,25 @@ spec:
                     description: State that this condition represents
                     type: string
                   status:
-                    description: Flag to indicate if condition status is currently
-                      active
+                    description: Flag to indicate if condition status is currently active
                     type: boolean
                   type:
                     description: Type is the type of the condition
                     type: string
                 required:
-                - lastTransitionTime
-                - state
-                - status
+                  - lastTransitionTime
+                  - state
+                  - status
                 type: object
               type: array
             state:
               description: State that this condition represents
               type: string
           required:
-          - state
+            - state
           type: object
-      type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
