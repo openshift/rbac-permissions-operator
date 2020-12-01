@@ -11,3 +11,14 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 build/_output
+
+### Vim ###
+*.orig
+# swap
+.sw[a-p]
+.*.sw[a-p]
+
+### Boilerplate ###
+.operator-sdk/*
+.venv/*
+
