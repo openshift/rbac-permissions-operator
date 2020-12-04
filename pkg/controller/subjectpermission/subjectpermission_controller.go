@@ -202,7 +202,8 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 				opts := []client.ListOption{
 					client.InNamespace(ns),
 				}
-				err = r.client.List(context.TODO(), rbList, opts...)
+				// TODO: Check error
+				_ = r.client.List(context.TODO(), rbList, opts...)
 
 				// create roleBinding
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
@@ -213,8 +214,6 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 						continue
 					}
 
-					var permissionsClusterRoleNames []string
-					permissionsClusterRoleNames = append(permissionsClusterRoleNames, permission.ClusterRoleName)
 					return reconcile.Result{}, err
 				}
 				successfullRoleBindingNames = append(successfullRoleBindingNames, permission.ClusterRoleName)

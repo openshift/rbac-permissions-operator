@@ -140,8 +140,6 @@ func (r *ReconcileNamespace) Reconcile(request reconcile.Request) (reconcile.Res
 					if k8serr.IsAlreadyExists(err) {
 						continue
 					}
-					var permissionClusterRoleNames []string
-					permissionClusterRoleNames = append(permissionClusterRoleNames, permission.ClusterRoleName)
 					failedToCreateRoleBindingMsg := fmt.Sprintf("Failed to create rolebinding %s", roleBinding.Name)
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
 					return reconcile.Result{}, err

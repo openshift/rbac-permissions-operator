@@ -7,12 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	log      = logf.Log.WithName("safelist")
-	daLogger = log.WithValues("SafeList", "functions")
 )
 
 // PopulateCrPermissionClusterRoleNames to see if clusterRoleName exists in permission

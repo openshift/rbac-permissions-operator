@@ -1,24 +1,27 @@
-SHELL := /usr/bin/env bash
+include boilerplate/generated-includes.mk
 
-# Include shared Makefiles
-include project.mk
-include standard.mk
-
-default: gobuild
+.PHONY: boilerplate-update
+boilerplate-update:
+	@boilerplate/update
 
 # Extend Makefile after here
 
-# Build the docker image
-.PHONY: docker-build
-docker-build:
-	$(MAKE) build
+# >> TEMPORARY >>
+# Remove this section once boilerplate covers openapi-gen.
+# Boilerplate doesn't know how to openapi-gen yet. We'll provide a
+# target for that step, and override `generate` to include it.
 
-# Push the docker image
-.PHONY: docker-push
-docker-push:
-	$(MAKE) push
+.PHONY: openapi-generate
+openapi-generate:
+	go get k8s.io/code-generator/cmd/openapi-gen@v0.19.4
+	openapi-gen --logtostderr=true \
+		-i ./pkg/apis/managed/v1alpha1 \
+		-o "" \
+		-O zz_generated.openapi \
+		-p ./pkg/apis/managed/v1alpha1 \
+		-h /dev/null \
+		-r "-"
 
-.PHONY: operator-sdk-generate
-operator-sdk-generate:
-	operator-sdk generate openapi
-	operator-sdk generate k8s
+generate: op-generate openapi-generate go-generate
+
+# << TEMPORARY <<
