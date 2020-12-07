@@ -1,6 +1,6 @@
 module github.com/openshift/rbac-permissions-operator
 
-go 1.14
+go 1.13
 
 require (
 	github.com/coreos/prometheus-operator v0.35.1
