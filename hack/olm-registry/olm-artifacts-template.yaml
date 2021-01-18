@@ -11,8 +11,8 @@ parameters:
 - name: REPO_NAME
   value: rbac-permissions-operator
   required: true
-- name: OPERATOR_NAME
-  value: rbac-permissions-operator
+- name: DISPLAY_NAME
+  value: RBAC Permissions Operator
   required: true
 metadata:
   name: selectorsyncset-template
@@ -21,9 +21,9 @@ objects:
   kind: SelectorSyncSet
   metadata:
     annotations:
-      component-display-name: RBAC Permissions Operator
-      component-name: ${OPERATOR_NAME}
-      telemeter-query: csv_succeeded{_id="$CLUSTER_ID",name=~"${OPERATOR_NAME}.*",exported_namespace=~"openshift-.*",namespace="openshift-operator-lifecycle-manager"} == 1
+      component-display-name: ${DISPLAY_NAME}
+      component-name: ${REPO_NAME}
+      telemeter-query: csv_succeeded{_id="$CLUSTER_ID",name=~"${REPO_NAME}.*",exported_namespace=~"openshift-.*",namespace="openshift-operator-lifecycle-manager"} == 1
     labels:
       managed.openshift.io/gitHash: ${IMAGE_TAG}
       managed.openshift.io/gitRepoName: ${REPO_NAME}
