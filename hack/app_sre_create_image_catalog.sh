@@ -38,7 +38,7 @@ if [[ "$REMOVE_UNDEPLOYED" == true ]]; then
     echo "Current deployed production HASH: $DEPLOYED_HASH"
 
     if [[ ! "${DEPLOYED_HASH}" =~ [0-9a-f]{40} ]]; then
-        echo "Error discoving current production deployed HASH"
+        echo "Error discovering current production deployed HASH"
         exit 1
     fi
 
