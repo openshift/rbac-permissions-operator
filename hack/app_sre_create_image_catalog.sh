@@ -31,6 +31,17 @@ if [[ "$REMOVE_UNDEPLOYED" == true ]]; then
             docker run --rm -i quay.io/app-sre/yq:3.4.1 yq r - "resourceTemplates[*].targets(namespace.\$ref==/services/osd-operators/namespaces/hivep01ue1/cluster-scope.yml).ref"
     )
 
+    # Ensure that our query for the current deployed hash worked
+    # Validate that our DEPLOYED_HASH var isn't empty.
+    # Although we have `set -e` defined the docker container isn't returning
+    # an error and allowing the script to continue
+    echo "Current deployed production HASH: $DEPLOYED_HASH"
+
+    if [[ ! "${DEPLOYED_HASH}" =~ [0-9a-f]{40} ]]; then
+        echo "Error discovering current production deployed HASH"
+        exit 1
+    fi
+
     delete=false
     # Sort based on commit number
     for version in $(ls $BUNDLE_DIR | sort -t . -k 3 -g); do
