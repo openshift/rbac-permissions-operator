@@ -21,4 +21,7 @@ build/_output
 ### Boilerplate ###
 .operator-sdk/*
 .venv/*
-
+# Artifacts from running locally app-sre pipeline
+.docker/
+Dockerfile.olm-registry
+saas-rbac-permissions-operator-bundle
