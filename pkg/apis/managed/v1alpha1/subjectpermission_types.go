@@ -42,7 +42,7 @@ type SubjectPermissionStatus struct {
 	// List of conditions for the CR
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State that this condition represents
-	State string `json:"state"`
+	State string `json:"state,omitempty"`
 }
 
 // Condition defines a single condition of running the operator against an instance of the SubjectPermission CR
