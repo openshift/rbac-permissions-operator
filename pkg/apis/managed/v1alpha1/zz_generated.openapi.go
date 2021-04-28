@@ -148,7 +148,6 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"state"},
 			},
 		},
 		Dependencies: []string{
