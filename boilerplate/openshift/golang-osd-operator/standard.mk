@@ -1,3 +1,5 @@
+# This comment should cause a CI failure
+
 # Validate variables in project.mk exist
 ifndef IMAGE_REGISTRY
 $(error IMAGE_REGISTRY is not set; check project.mk file)
