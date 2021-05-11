@@ -1,1 +1,2 @@
-boilerplate/** linguist-generated
+boilerplate/** linguist-generated=true
+boilerplate/_lib/common.sh linguist-generate=false
