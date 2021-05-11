@@ -100,6 +100,12 @@ EOF
   echo "Updating the update script."
   rsync -a "${BP_CLONE}/boilerplate/update" "$0"
   echo "Copying utilities"
+  # HACK: Delete the utility dirs first because, in CI, rsync will fail
+  # to set things like mod times and permissions on the directories
+  # themselves, which have uid=gid=0.
+  for d in $(/bin/ls -d ${BP_CLONE}/boilerplate/_*); do
+    rm -fr $CONVENTION_ROOT/${d##*/}
+  done
   rsync -a -r --delete ${BP_CLONE}/boilerplate/_* $CONVENTION_ROOT
   echo "Reinvoking..."
   echo ""

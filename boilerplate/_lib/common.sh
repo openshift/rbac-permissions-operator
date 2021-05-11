@@ -1,3 +1,5 @@
+# This comment should make CI fail
+
 err() {
   echo "==ERROR== $@" >&2
   exit 1
