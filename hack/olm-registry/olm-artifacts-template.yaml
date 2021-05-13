@@ -8,7 +8,7 @@ parameters:
   required: true
 - name: IMAGE_TAG
   required: true
-- name: REPO_DIGEST
+- name: IMAGE_DIGEST
   required: true
 - name: REPO_NAME
   value: rbac-permissions-operator
@@ -80,7 +80,7 @@ objects:
         name: rbac-permissions-operator-registry
         namespace: openshift-rbac-permissions
       spec:
-        image: ${REPO_DIGEST}
+        image: ${REGISTRY_IMG}@${IMAGE_DIGEST}
         affinity:
           nodeAffinity:
             preferredDuringSchedulingIgnoredDuringExecution:
