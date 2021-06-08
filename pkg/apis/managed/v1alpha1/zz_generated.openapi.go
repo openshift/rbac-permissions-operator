@@ -140,13 +140,6 @@ func schema_pkg_apis_managed_v1alpha1_SubjectPermissionStatus(ref common.Referen
 							},
 						},
 					},
-					"state": {
-						SchemaProps: spec.SchemaProps{
-							Description: "State that this condition represents",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 			},
 		},
