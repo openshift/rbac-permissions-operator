@@ -1,9 +1,15 @@
 reviewers:
-- sam-nguyen7
-- fahlmant
-- clcollins
-- iamkirkbater
-- rogbas
+- bmeng
+- mrbarge
+- ravitri
+- anjoshi24
+- a7vicky
+- T0MASD
+
 approvers:
-- fahlmant
+- mrbarge
+- bmeng
+- ravitri
+
 maintainers:
+- mrbarge
