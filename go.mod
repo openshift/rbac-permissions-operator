@@ -5,12 +5,12 @@ go 1.13
 require (
 	github.com/coreos/prometheus-operator v0.35.1
 	github.com/go-openapi/spec v0.19.4
-	github.com/openshift/operator-custom-metrics v0.3.0
+	github.com/openshift/operator-custom-metrics v0.4.2
 	github.com/operator-framework/operator-sdk v0.16.0
 	github.com/prometheus/client_golang v1.2.1
 	github.com/spf13/pflag v1.0.5
-	k8s.io/api v0.0.0
-	k8s.io/apimachinery v0.0.0
+	k8s.io/api v0.15.7
+	k8s.io/apimachinery v0.15.7
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/code-generator v0.19.4
 	k8s.io/gengo v0.0.0-20191010091904-7fa3014cb28f

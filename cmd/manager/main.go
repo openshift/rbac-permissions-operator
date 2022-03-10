@@ -118,11 +118,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	metricsServer := osdmetrics.NewBuilder().
+	metricsServer := osdmetrics.NewBuilder(operatorconfig.OperatorNamespace, "localmetrics-"+operatorconfig.OperatorName).
 		WithPort(osdMetricsPort).
 		WithPath(osdMetricsPath).
 		WithCollectors(localmetrics.MetricsList).
-		WithServiceName("localmetrics-" + operatorconfig.OperatorName).
 		WithServiceMonitor().
 		GetConfig()
 
