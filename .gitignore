@@ -25,3 +25,6 @@ build/_output
 .docker/
 Dockerfile.olm-registry
 saas-rbac-permissions-operator-bundle
+
+### Go ###
+vendor/*

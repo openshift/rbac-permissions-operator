@@ -20,7 +20,7 @@ import (
 // create fake client to mock API calls
 func newTestReconciler() *ReconcileSubjectPermission {
 	return &ReconcileSubjectPermission{
-		client: fake.NewFakeClient(),
+		client: fake.NewClientBuilder().Build(),
 		scheme: scheme.Scheme,
 	}
 }
