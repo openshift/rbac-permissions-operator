@@ -9,7 +9,6 @@ import (
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,7 +72,7 @@ type ReconcileSubjectPermission struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SubjectPermission")
 
@@ -81,7 +80,7 @@ func (r *ReconcileSubjectPermission) Reconcile(request reconcile.Request) (recon
 	instance := &managedv1alpha1.SubjectPermission{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
