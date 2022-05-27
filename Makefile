@@ -1,3 +1,4 @@
+FIPS_ENABLED=true
 include boilerplate/generated-includes.mk
 
 .PHONY: boilerplate-update
