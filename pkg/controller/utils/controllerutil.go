@@ -168,13 +168,3 @@ func FindRbacCondition(conditions []managedv1alpha1.Condition, conditionType man
 	}
 	return nil
 }
-
-// RoleBindingExists checks if a rolebinding exists in the cluster already
-func RoleBindingExists(roleBinding *v1.RoleBinding, rbList *v1.RoleBindingList) bool {
-	for _, rb := range rbList.Items {
-		if roleBinding.Name == rb.Name {
-			return true
-		}
-	}
-	return false
-}

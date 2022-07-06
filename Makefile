@@ -19,3 +19,10 @@ predeploy: predeploy-rbac-permissions-operator
 deploy-local: ## Deploy Operator locally
 	@FORCE_DEV_MODE=local operator-sdk run --local --namespace=rbac-permissions-operator
 
+.PHONY: tools
+tools: ## Install local go tools for RPO
+	cat tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go install %
+
+.PHONY: ensure-mockgen
+ensure-mockgen:
+	go install github.com/golang/mock/mockgen@v1.6.0

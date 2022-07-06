@@ -5,6 +5,9 @@ go 1.16
 require (
 	github.com/coreos/prometheus-operator v0.38.1-0.20200424145508-7e176fda06cc
 	github.com/go-openapi/spec v0.19.5
+	github.com/golang/mock v1.4.1
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.19.0
 	github.com/openshift/operator-custom-metrics v0.4.2
 	github.com/operator-framework/operator-sdk v0.18.2
 	github.com/prometheus/client_golang v1.11.0
