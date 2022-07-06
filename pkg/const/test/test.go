@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
@@ -29,10 +30,14 @@ var (
 			ClusterPermissions: []string{"exampleClusterRoleName", "exampleClusterRoleNameTwo"},
 			Permissions: []v1alpha1.Permission{
 				{
-					ClusterRoleName: "exampleClusterRoleName",
+					ClusterRoleName:        "exampleClusterRoleName",
+					NamespacesAllowedRegex: TestAllowedList,
+					NamespacesDeniedRegex:  TestDeniedList,
 				},
 				{
-					ClusterRoleName: "testClusterRoleName",
+					ClusterRoleName:        "testClusterRoleName",
+					NamespacesAllowedRegex: "test-namespace",
+					NamespacesDeniedRegex:  "",
 				},
 			},
 		},
@@ -46,6 +51,12 @@ var (
 					State:              "exampleState",
 				},
 			},
+		},
+	}
+
+	TestSubjectPermissionList = &v1alpha1.SubjectPermissionList{
+		Items: []v1alpha1.SubjectPermission{
+			TestSubjectPermission,
 		},
 	}
 
@@ -83,6 +94,11 @@ var (
 					Name: "openshift.readers",
 				},
 			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+			},
 		},
 	}
 
@@ -107,6 +123,28 @@ var (
 		},
 	}
 
+	TestRoleBindingList = &rbacv1.RoleBindingList{
+		Items: []rbacv1.RoleBinding{
+			*TestRoleBinding,
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "testPermissionCLusterRoleName-testGroupName",
+					Namespace: "test-namespace",
+				},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind: "Group",
+						Name: "testGroupName",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					Kind: "ClusterRole",
+					Name: "testPermissionClusterRoleName",
+				},
+			},
+		},
+	}
+
 	TestConditions = []v1alpha1.Condition{
 		{
 			ClusterRoleNames: []string{"exampleClusterRoleName"},
@@ -125,6 +163,11 @@ var (
 	TestSubjectPermissionState v1alpha1.SubjectPermissionState = "testState"
 
 	TestSubjectPermissionType v1alpha1.SubjectPermissionType = "testType"
+
+	TestNamespaceName = types.NamespacedName{
+		Name:      "test",
+		Namespace: "test-namespace",
+	}
 )
 
 func setScheme(scheme *runtime.Scheme) *runtime.Scheme {

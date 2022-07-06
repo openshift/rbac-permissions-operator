@@ -35,7 +35,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespace{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileNamespace{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -62,8 +62,8 @@ var _ reconcile.Reconciler = &ReconcileNamespace{}
 type ReconcileNamespace struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	Client client.Client
+	Scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
@@ -79,7 +79,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 
 	// Fetch the Namespace instance
 	instance := &corev1.Namespace{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -92,14 +92,14 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 	}
 
 	namespaceList := &corev1.NamespaceList{}
-	err = r.client.List(context.TODO(), namespaceList)
+	err = r.Client.List(context.TODO(), namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
 		return reconcile.Result{}, err
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
-	err = r.client.List(context.TODO(), subjectPermissionList)
+	err = r.Client.List(context.TODO(), subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return reconcile.Result{}, err
@@ -110,7 +110,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 	opts := []client.ListOption{
 		client.InNamespace(request.Name),
 	}
-	err = r.client.List(context.TODO(), roleBindingList, opts...)
+	err = r.Client.List(context.TODO(), roleBindingList, opts...)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
 		return reconcile.Result{}, err
@@ -135,7 +135,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 					continue
 				}
 
-				err := r.client.Create(context.TODO(), roleBinding)
+				err := r.Client.Create(context.TODO(), roleBinding)
 				if err != nil {
 					if k8serr.IsAlreadyExists(err) {
 						continue
@@ -149,7 +149,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 			}
 		}
 		subjectPermission.Status.Conditions = controllerutil.UpdateCondition(subjectPermission.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-		err = r.client.Status().Update(context.TODO(), &subjectPermission)
+		err = r.Client.Status().Update(context.TODO(), &subjectPermission)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
 			return reconcile.Result{}, err
