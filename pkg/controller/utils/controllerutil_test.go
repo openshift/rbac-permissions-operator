@@ -3,10 +3,11 @@ package util
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/golang/mock/gomock"
+
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
 	testconst "github.com/openshift/rbac-permissions-operator/pkg/const/test"
@@ -16,9 +17,9 @@ var _ = Describe("Controller Utils Tests", func() {
 
 	var (
 		mockCtrl            *gomock.Controller
-		TestClusterRoleList rbacv1.ClusterRoleList
 		TestDeniedList      string
 		TestConditions      []v1alpha1.Condition
+		testClusterRoleList *rbacv1.ClusterRoleList
 	)
 
 	BeforeEach(func() {
@@ -30,14 +31,28 @@ var _ = Describe("Controller Utils Tests", func() {
 
 	Context("Running PopulateCrPermissionClusterRoleNames", func() {
 
-		It("Should give list of clusterrole names from permissions list if not found", func() {
+		It("Should give list of all ClusterRoleNames from permissions list if the same ClusterRole is not found", func() {
 			crname := PopulateCrPermissionClusterRoleNames(&testconst.TestSubjectPermission, &testconst.TestClusterRoleList)
 			Expect(crname).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
 			Expect(crname).To(ContainElement(ContainSubstring("testClusterRoleName")))
 		})
 
+		It("Should give list of any ClusterRoleName from permissions list if the same ClusterRole is not found", func() {
+			testClusterRoleList = &rbacv1.ClusterRoleList{
+				Items: []rbacv1.ClusterRole{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "exampleClusterRoleName",
+						},
+					},
+				},
+			}
+			crname := PopulateCrPermissionClusterRoleNames(&testconst.TestSubjectPermission, testClusterRoleList)
+			Expect(crname).To(ContainElement(ContainSubstring("testClusterRoleName")))
+		})
+
 		It("Should not give clusterrole name if found", func() {
-			TestClusterRoleList = rbacv1.ClusterRoleList{
+			testClusterRoleList = &rbacv1.ClusterRoleList{
 				Items: []rbacv1.ClusterRole{
 					{
 						ObjectMeta: metav1.ObjectMeta{
@@ -46,7 +61,7 @@ var _ = Describe("Controller Utils Tests", func() {
 					},
 				},
 			}
-			crname := PopulateCrPermissionClusterRoleNames(&testconst.TestSubjectPermission, &TestClusterRoleList)
+			crname := PopulateCrPermissionClusterRoleNames(&testconst.TestSubjectPermission, testClusterRoleList)
 			Expect(crname).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
 			Expect(crname).ToNot(ContainElement(ContainSubstring("testClusterRoleName")))
 		})

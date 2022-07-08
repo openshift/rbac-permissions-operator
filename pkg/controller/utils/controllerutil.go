@@ -19,6 +19,7 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 	var found bool
 
 	for _, i := range permissions {
+		found = false
 		for _, a := range clusterRoleList.Items {
 			if i.ClusterRoleName == a.Name {
 				found = true
