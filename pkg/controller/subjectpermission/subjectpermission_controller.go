@@ -221,7 +221,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 				reqLogger.Info(fmt.Sprintf("Successfully created RoleBinding %s in namespace %s", roleBinding.Name, ns))
 				namespaceCount++
 			}
-			if len(safeList) == namespaceCount {
+			if len(safeList) != 0 && len(safeList) == namespaceCount {
 				//increment roleBindingCounter
 				CreatedRoleBindingCount++
 			}
