@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	Context = context.TODO()
-	Scheme  = setScheme(runtime.NewScheme())
+	Context  = context.TODO()
+	Scheme   = setScheme(runtime.NewScheme())
+	TestTime = metav1.Now()
 
 	TestSubjectPermission = v1alpha1.SubjectPermission{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,6 +73,27 @@ var (
 						Resources: []string{"clusterrolebindings"},
 						Verbs:     []string{"create", "delete", "get", "list"},
 					},
+				},
+			},
+		},
+	}
+
+	TestClusterRoleBinding = rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-name-one",
+		},
+	}
+
+	TestClusterRoleBindingList = rbacv1.ClusterRoleBindingList{
+		Items: []rbacv1.ClusterRoleBinding{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-name-one",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-name-two",
 				},
 			},
 		},
