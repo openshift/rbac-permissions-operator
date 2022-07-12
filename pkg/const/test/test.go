@@ -124,9 +124,9 @@ var (
 		},
 	}
 
-	TestAllowedList = "default"
+	TestDefaultAllowedList = "default"
 
-	TestDeniedList = ""
+	TestEmptyDeniedList = ""
 
 	TestRoleBinding = &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
