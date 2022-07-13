@@ -22,7 +22,3 @@ deploy-local: ## Deploy Operator locally
 .PHONY: tools
 tools: ## Install local go tools for RPO
 	cat tools.go | grep _ | awk -F'"' '{print $$2}' | xargs -tI % go install %
-
-.PHONY: ensure-mockgen
-ensure-mockgen:
-	go install github.com/golang/mock/mockgen@v1.6.0
