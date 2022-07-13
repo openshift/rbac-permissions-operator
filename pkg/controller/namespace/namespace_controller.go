@@ -127,11 +127,11 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
 			// if namespace is in safeList, create RoleBinding
-			if namespaceInSlice(instance.Name, safeList) {
+			if NamespaceInSlice(instance.Name, safeList) {
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
 				// if rolebinding is already created in the namespace, continue to next iteration
-				if rolebindingInNamespace(roleBinding, roleBindingList) {
+				if RolebindingInNamespace(roleBinding, roleBindingList) {
 					continue
 				}
 
@@ -160,7 +160,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 }
 
 // check if namespace is in safeList
-func namespaceInSlice(namespace string, safeList []string) bool {
+func NamespaceInSlice(namespace string, safeList []string) bool {
 	for _, ns := range safeList {
 		if ns == namespace {
 			return true
@@ -170,7 +170,7 @@ func namespaceInSlice(namespace string, safeList []string) bool {
 }
 
 // check if rolebinding is already created in the namespace
-func rolebindingInNamespace(rolebinding *v1.RoleBinding, roleBindingList *v1.RoleBindingList) bool {
+func RolebindingInNamespace(rolebinding *v1.RoleBinding, roleBindingList *v1.RoleBindingList) bool {
 	list := roleBindingList.Items
 	roleBindingName := rolebinding.Name
 

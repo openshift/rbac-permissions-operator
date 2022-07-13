@@ -116,7 +116,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	}
 
 	// get all ClusterRoleNames that do not exist as ClusterRole
-	clusterRoleNamesNotOnCluster := populateCrClusterRoleNames(instance, clusterRoleList)
+	clusterRoleNamesNotOnCluster := PopulateCrClusterRoleNames(instance, clusterRoleList)
 	if len(clusterRoleNamesNotOnCluster) != 0 {
 		// update condition if any ClusterRoleName does not exist as a ClusterRole
 		instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "ClusterRole for ClusterPermission does not exist", clusterRoleNamesNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.ClusterRoleBindingCreated)
@@ -135,7 +135,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	var clusterRoleNames []string
 	for _, clusterRoleName := range instance.Spec.ClusterPermissions {
 		// create a new ClusterRoleBinding
-		newCRB := newClusterRoleBinding(clusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind)
+		newCRB := NewClusterRoleBinding(clusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind)
 		err := r.Client.Create(context.TODO(), newCRB)
 		if err != nil {
 			if !k8serr.IsAlreadyExists(err) {
@@ -243,8 +243,8 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	return reconcile.Result{}, nil
 }
 
-// newClusterRoleBinding creates and returns ClusterRoleBinding
-func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind string) *v1.ClusterRoleBinding {
+// NewClusterRoleBinding creates and returns ClusterRoleBinding
+func NewClusterRoleBinding(clusterRoleName, subjectName string, subjectKind string) *v1.ClusterRoleBinding {
 	return &v1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusterRoleName + "-" + subjectName,
@@ -262,9 +262,9 @@ func newClusterRoleBinding(clusterRoleName, subjectName string, subjectKind stri
 	}
 }
 
-// populateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
+// PopulateCrClusterRoleNames to see if ClusterRoleName exists as a ClusterRole
 // returns list of ClusterRoleNames that do not exist
-func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
+func PopulateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermission, clusterRoleList *v1.ClusterRoleList) []string {
 	crClusterRoleNames := subjectPermission.Spec.ClusterPermissions
 
 	// items is list of clusterRole on k8s
@@ -275,6 +275,7 @@ func populateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermis
 
 	// for every CR clusterRoleNames, loop through all k8s lusterRoles, if it doesn't exist then append
 	for _, i := range crClusterRoleNames {
+		found = false
 		for _, a := range onClusterItems {
 			if i == a.Name {
 				found = true

@@ -32,8 +32,8 @@ var (
 			Permissions: []v1alpha1.Permission{
 				{
 					ClusterRoleName:        "exampleClusterRoleName",
-					NamespacesAllowedRegex: TestAllowedList,
-					NamespacesDeniedRegex:  TestDeniedList,
+					NamespacesAllowedRegex: TestDefaultAllowedList,
+					NamespacesDeniedRegex:  TestEmptyDeniedList,
 				},
 				{
 					ClusterRoleName:        "testClusterRoleName",

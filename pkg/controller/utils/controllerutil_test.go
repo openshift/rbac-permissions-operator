@@ -70,19 +70,19 @@ var _ = Describe("Controller Utils Tests", func() {
 	Context("Running GenerateSafeList", func() {
 
 		It("Should return safe list if the deny list is blank", func() {
-			safeList := GenerateSafeList(testconst.TestAllowedList, testconst.TestDeniedList, testconst.TestNamespaceList)
+			safeList := GenerateSafeList(testconst.TestDefaultAllowedList, testconst.TestEmptyDeniedList, testconst.TestNamespaceList)
 			Expect(safeList).To(ContainElement(ContainSubstring("default.whatever")))
 		})
 
-		It("Should not return any list if the deny list is same as safe list", func() {
+		It("Should not return any list if the deny list is same as allow list", func() {
 			TestDeniedList = "default"
-			safeList := GenerateSafeList(testconst.TestAllowedList, TestDeniedList, testconst.TestNamespaceList)
+			safeList := GenerateSafeList(testconst.TestDefaultAllowedList, TestDeniedList, testconst.TestNamespaceList)
 			Expect(safeList).To(BeNil())
 		})
 
 		It("Should return safe list if allowed and is not in the deny list", func() {
 			TestDeniedList = "something"
-			safeList := GenerateSafeList(testconst.TestAllowedList, TestDeniedList, testconst.TestNamespaceList)
+			safeList := GenerateSafeList(testconst.TestDefaultAllowedList, TestDeniedList, testconst.TestNamespaceList)
 			Expect(safeList).To(ContainElement(ContainSubstring("default")))
 		})
 	})
