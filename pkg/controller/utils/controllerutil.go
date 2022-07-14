@@ -19,6 +19,7 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 	var found bool
 
 	for _, i := range permissions {
+		found = false
 		for _, a := range clusterRoleList.Items {
 			if i.ClusterRoleName == a.Name {
 				found = true
@@ -167,14 +168,4 @@ func FindRbacCondition(conditions []managedv1alpha1.Condition, conditionType man
 		}
 	}
 	return nil
-}
-
-// RoleBindingExists checks if a rolebinding exists in the cluster already
-func RoleBindingExists(roleBinding *v1.RoleBinding, rbList *v1.RoleBindingList) bool {
-	for _, rb := range rbList.Items {
-		if roleBinding.Name == rb.Name {
-			return true
-		}
-	}
-	return false
 }

@@ -1,5 +1,10 @@
 # RBAC Permissions Operator
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/openshift/rbac-permissions-operator)](https://goreportcard.com/report/github.com/openshift/rbac-permissions-operator)
+[![codecov](https://codecov.io/gh/openshift/rbac-permissions-operator/branch/master/graph/badge.svg)](https://codecov.io/gh/openshift/rbac-permissions-operator)
+[![GoDoc](https://godoc.org/github.com/openshift/rbac-permissions-operator?status.svg)](https://pkg.go.dev/mod/github.com/openshift/rbac-permissions-operator)
+[![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
+
 ## Summary
 The RBAC-Permissions-Operator was created for the Openshift Dedicated platform to manage various permissions (via k8s RBAC policies) to
 all the projects/namespaces within an OpenShift Dedicated cluster. The permissions must allow for cluster and namespace scope access
