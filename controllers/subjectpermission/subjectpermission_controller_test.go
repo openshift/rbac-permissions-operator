@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/controllers/subjectpermission"
 	testconst "github.com/openshift/rbac-permissions-operator/pkg/const/test"
-	"github.com/openshift/rbac-permissions-operator/pkg/controller/subjectpermission"
 	clientmocks "github.com/openshift/rbac-permissions-operator/pkg/util/test/generated/mocks/client"
 )
 
@@ -26,7 +26,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 	var (
 		mockClient                  *clientmocks.MockClient
 		mockCtrl                    *gomock.Controller
-		subjectPermissionReconciler subjectpermission.ReconcileSubjectPermission
+		subjectPermissionReconciler subjectpermission.SubjectPermissionReconciler
 		testSubjectPermission       v1alpha1.SubjectPermission
 		testClusterRoleName         string
 		testSubjectName             string
@@ -41,7 +41,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = clientmocks.NewMockClient(mockCtrl)
 		mockStatusWriter = clientmocks.NewMockStatusWriter(mockCtrl)
-		subjectPermissionReconciler = subjectpermission.ReconcileSubjectPermission{
+		subjectPermissionReconciler = subjectpermission.SubjectPermissionReconciler{
 			Client: mockClient,
 			Scheme: testconst.Scheme,
 		}

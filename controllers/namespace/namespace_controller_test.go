@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/controllers/namespace"
 	testconst "github.com/openshift/rbac-permissions-operator/pkg/const/test"
-	"github.com/openshift/rbac-permissions-operator/pkg/controller/namespace"
 	clientmocks "github.com/openshift/rbac-permissions-operator/pkg/util/test/generated/mocks/client"
 )
 
@@ -27,7 +27,7 @@ var _ = Describe("Namespace Controller", func() {
 		mockClient                *clientmocks.MockClient
 		mockCtrl                  *gomock.Controller
 		mockStatusWriter          *clientmocks.MockStatusWriter
-		namespaceReconciler       namespace.ReconcileNamespace
+		namespaceReconciler       namespace.NamespaceReconciler
 		testNamespace             *corev1.Namespace
 		testNamespaceList         *corev1.NamespaceList
 		testSubjectPermissionList v1alpha1.SubjectPermissionList
@@ -41,7 +41,7 @@ var _ = Describe("Namespace Controller", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = clientmocks.NewMockClient(mockCtrl)
 		mockStatusWriter = clientmocks.NewMockStatusWriter(mockCtrl)
-		namespaceReconciler = namespace.ReconcileNamespace{
+		namespaceReconciler = namespace.NamespaceReconciler{
 			Client: mockClient,
 			Scheme: testconst.Scheme,
 		}

@@ -12,7 +12,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
-	v1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	v1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 )
 
 var (

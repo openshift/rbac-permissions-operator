@@ -9,7 +9,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
+	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	testconst "github.com/openshift/rbac-permissions-operator/pkg/const/test"
 )
 
