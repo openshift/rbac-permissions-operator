@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	nscontrollers "github.com/openshift/rbac-permissions-operator/controllers/namespace"
 	controllers "github.com/openshift/rbac-permissions-operator/controllers/subjectpermission"
 	monitorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -55,7 +54,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(managedv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -87,12 +86,6 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	// Add API scheme to manager
-	if err = managedv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
-		setupLog.Error(err, "")
 		os.Exit(1)
 	}
 

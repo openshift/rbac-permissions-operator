@@ -40,11 +40,6 @@ type NamespaceReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=managed.openshift.io,resources=subjectpermissions,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=managed.openshift.io,resources=subjectpermissions/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=managed.openshift.io,resources=subjectpermissions/finalizers,verbs=update
-//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
