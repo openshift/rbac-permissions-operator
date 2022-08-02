@@ -19,10 +19,11 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/config"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
-	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	nscontrollers "github.com/openshift/rbac-permissions-operator/controllers/namespace"
 	controllers "github.com/openshift/rbac-permissions-operator/controllers/subjectpermission"
 	monitorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -53,8 +55,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(managedv1alpha1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
