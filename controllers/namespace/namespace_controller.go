@@ -1,79 +1,55 @@
+/*
+Copyright 2022.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package namespace
 
 import (
 	"context"
 	"fmt"
 
-	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controller/utils"
+	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controllerutils"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 )
 
 var log = logf.Log.WithName("controller_namespace")
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
-// Add creates a new Namespace Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileNamespace{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-}
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("namespace-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource Namespace
-	err = c.Watch(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// blank assignment to verify that ReconcileNamespace implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileNamespace{}
-
-// ReconcileNamespace reconciles a Namespace object
-type ReconcileNamespace struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	Client client.Client
+// NamespaceReconciler reconciles a Namespace object
+type NamespaceReconciler struct {
+	client.Client
 	Scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a Namespace object and makes changes based on the state read
-// and what is in the Namespace.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
-// a Pod as an example
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the Namespace object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
+func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling Namespace")
 
@@ -81,28 +57,28 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 	instance := &corev1.Namespace{}
 	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	namespaceList := &corev1.NamespaceList{}
 	err = r.Client.List(context.TODO(), namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
 	err = r.Client.List(context.TODO(), subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	roleBindingList := &v1.RoleBindingList{}
@@ -113,15 +89,16 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 	err = r.Client.List(context.TODO(), roleBindingList, opts...)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// loop through all subject permissions
 	// get namespaces allowed in each permission
 	// if our namespace instance is in the safeList, create rolebinding and update condition
 	for _, subjectPermission := range subjectPermissionList.Items {
+		subPerm := subjectPermission
 		var successfulClusterRoleNames []string
-		for _, permission := range subjectPermission.Spec.Permissions {
+		for _, permission := range subPerm.Spec.Permissions {
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 
 			// list of all namespaces in safelist
@@ -129,7 +106,7 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 			// if namespace is in safeList, create RoleBinding
 			if NamespaceInSlice(instance.Name, safeList) {
 
-				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectKind, instance.Name)
 				// if rolebinding is already created in the namespace, continue to next iteration
 				if RolebindingInNamespace(roleBinding, roleBindingList) {
 					continue
@@ -142,21 +119,22 @@ func (r *ReconcileNamespace) Reconcile(ctx context.Context, request reconcile.Re
 					}
 					failedToCreateRoleBindingMsg := fmt.Sprintf("Failed to create rolebinding %s", roleBinding.Name)
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
-					return reconcile.Result{}, err
+					return ctrl.Result{}, err
 				}
 				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
 				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}
 		}
-		subjectPermission.Status.Conditions = controllerutil.UpdateCondition(subjectPermission.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-		err = r.Client.Status().Update(context.TODO(), &subjectPermission)
+		subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
+		err = r.Client.Status().Update(context.TODO(), &subPerm)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 	}
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
+
 }
 
 // check if namespace is in safeList
@@ -180,4 +158,11 @@ func RolebindingInNamespace(rolebinding *v1.RoleBinding, roleBindingList *v1.Rol
 		}
 	}
 	return false
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	return ctrl.NewControllerManagedBy(mgr).For(&corev1.Namespace{}).Complete(r)
+
 }

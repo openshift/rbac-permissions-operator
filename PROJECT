@@ -1,0 +1,19 @@
+domain: openshift.io
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: rbac-permissions-operator
+repo: github.com/openshift/rbac-permissions-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: openshift.io
+  group: managed
+  kind: SubjectPermission
+  path: github.com/openshift/rbac-permissions-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

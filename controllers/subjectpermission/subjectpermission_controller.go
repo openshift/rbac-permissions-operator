@@ -1,78 +1,59 @@
+/*
+Copyright 2022.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package subjectpermission
 
 import (
 	"context"
 	"fmt"
 
-	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/pkg/apis/managed/v1alpha1"
-	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controller/utils"
-	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controllerutils"
+	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
 	v1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 )
 
 var log = logf.Log.WithName("controller_subjectpermission")
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
-// Add creates a new SubjectPermission Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileSubjectPermission{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-}
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("subjectpermission-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource SubjectPermission
-	err = c.Watch(&source.Kind{Type: &managedv1alpha1.SubjectPermission{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// blank assignment to verify that ReconcileSubjectPermission implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileSubjectPermission{}
-
-// ReconcileSubjectPermission reconciles a SubjectPermission object
-type ReconcileSubjectPermission struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	Client client.Client
+// SubjectPermissionReconciler reconciles a SubjectPermission object
+type SubjectPermissionReconciler struct {
+	client.Client
 	Scheme *runtime.Scheme
 }
 
-// Reconcile reads that state of the cluster for a SubjectPermission object and makes changes based on the state read
-// and what is in the SubjectPermission.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the SubjectPermission object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
+func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
+
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SubjectPermission")
 
@@ -84,10 +65,10 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// The SubjectPermission CR is about to be deleted, so we need to clean up the
@@ -96,7 +77,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	if instance.DeletionTimestamp != nil {
 		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.ObjectMeta.GetName()))
 		localmetrics.DeletePrometheusMetric(instance)
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// get list of clusterRole on k8s
@@ -104,7 +85,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	err = r.Client.List(context.TODO(), clusterRoleList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// get a list of clusterRoleBinding from k8s cluster list
@@ -112,7 +93,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	err = r.Client.List(context.TODO(), clusterRoleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	// get all ClusterRoleNames that do not exist as ClusterRole
@@ -123,10 +104,10 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 		err = r.Client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when checking ClusterRolenames that do not exist as ClusterRole")
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
 		// exit reconcile, wait for next CR change
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// for every ClusterPermission
@@ -140,7 +121,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 		if err != nil {
 			if !k8serr.IsAlreadyExists(err) {
 				reqLogger.Error(err, "Failed to create ClusterRoleBinding")
-				return reconcile.Result{}, err
+				return ctrl.Result{}, err
 			}
 		} else {
 			clusterRoleBindingName := fmt.Sprintf("%s-%s", clusterRoleName, instance.Spec.SubjectName)
@@ -158,9 +139,9 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 		err = r.Client.Status().Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
-			return reconcile.Result{}, err
+			return ctrl.Result{}, err
 		}
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// get the NamespaceList
@@ -168,7 +149,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 	err = r.Client.List(context.TODO(), nsList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get NamespaceList")
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 
 	if len(instance.Spec.Permissions) != 0 {
@@ -184,10 +165,10 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 				err = r.Client.Status().Update(context.TODO(), instance)
 				if err != nil {
 					reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
-					return reconcile.Result{}, err
+					return ctrl.Result{}, err
 				}
 				// exit reconcile, wait for next CR change
-				return reconcile.Result{}, nil
+				return ctrl.Result{}, nil
 			}
 
 			// list of all namespaces in safelist
@@ -213,7 +194,7 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 						continue
 					}
 
-					return reconcile.Result{}, err
+					return ctrl.Result{}, err
 				}
 				successfullRoleBindingNames = append(successfullRoleBindingNames, permission.ClusterRoleName)
 
@@ -233,14 +214,14 @@ func (r *ReconcileSubjectPermission) Reconcile(ctx context.Context, request reco
 			err = r.Client.Status().Update(context.TODO(), instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all rolebindings")
-				return reconcile.Result{}, err
+				return ctrl.Result{}, err
 			}
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
 
 	}
 
-	return reconcile.Result{}, nil
+	return ctrl.Result{}, nil
 }
 
 // NewClusterRoleBinding creates and returns ClusterRoleBinding
@@ -299,4 +280,11 @@ func PopulateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermis
 	}
 
 	return result
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *SubjectPermissionReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	return ctrl.NewControllerManagedBy(mgr).For(&managedv1alpha1.SubjectPermission{}).Complete(r)
+
 }
