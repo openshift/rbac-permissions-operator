@@ -101,8 +101,9 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 	// get namespaces allowed in each permission
 	// if our namespace instance is in the safeList, create rolebinding and update condition
 	for _, subjectPermission := range subjectPermissionList.Items {
+		subPerm := subjectPermission
 		var successfulClusterRoleNames []string
-		for _, permission := range subjectPermission.Spec.Permissions {
+		for _, permission := range subPerm.Spec.Permissions {
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 
 			// list of all namespaces in safelist
@@ -110,7 +111,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 			// if namespace is in safeList, create RoleBinding
 			if NamespaceInSlice(instance.Name, safeList) {
 
-				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subjectPermission.Spec.SubjectName, subjectPermission.Spec.SubjectKind, instance.Name)
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectKind, instance.Name)
 				// if rolebinding is already created in the namespace, continue to next iteration
 				if RolebindingInNamespace(roleBinding, roleBindingList) {
 					continue
@@ -129,8 +130,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}
 		}
-		subjectPermission.Status.Conditions = controllerutil.UpdateCondition(subjectPermission.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-		err = r.Client.Status().Update(context.TODO(), &subjectPermission)
+		subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
+		err = r.Client.Status().Update(context.TODO(), &subPerm)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
 			return ctrl.Result{}, err
