@@ -24,6 +24,7 @@ import (
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/config"
 	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+	"github.com/operator-framework/operator-lib/leader"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -87,6 +88,13 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// Ensure lock for leader election
+	err = leader.Become(context.TODO(), "rbac-permissions-operator-lock")
+	if err != nil {
+		setupLog.Error(err, "failed to create leader lock")
 		os.Exit(1)
 	}
 
