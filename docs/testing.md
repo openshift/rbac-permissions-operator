@@ -30,8 +30,8 @@ find .
 * Can also make use of the `ginkgo` command to run tests for a package. Example:
 
 ```bash
-ginkgo -v pkg/controller/subjectpermission
-ginkgo -v pkg/controller/namespace
+ginkgo -v controllers/subjectpermission
+ginkgo -v controllers/namespace
 ```
 
 ## Writing tests
