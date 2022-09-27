@@ -114,6 +114,8 @@ objects:
       metadata:
         name: rbac-permissions-operator
         namespace: openshift-rbac-permissions
+        annotations:
+          olm.operatorframework.io/exclude-global-namespace-resolution: 'true'
       spec:
         targetNamespaces:
         - openshift-rbac-permissions
