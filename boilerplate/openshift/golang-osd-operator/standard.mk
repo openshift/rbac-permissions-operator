@@ -118,6 +118,7 @@ ALLOW_DIRTY_CHECKOUT?=false
 
 # TODO: Figure out how to discover this dynamically
 CONVENTION_DIR := boilerplate/openshift/golang-osd-operator
+BOILERPLATE_CONTAINER_MAKE := boilerplate/_lib/container-make
 
 # Set the default goal in a way that works for older & newer versions of `make`:
 # Older versions (<=3.8.0) will pay attention to the `default` target.
@@ -348,3 +349,26 @@ endif
 	rsync -a $(OLD_SDK_REPO_DIR)/Makefile .
 	rsync -a $(OLD_SDK_REPO_DIR)/.gitignore .
 	rsync -a $(OLD_SDK_REPO_DIR)/ . --exclude={'cmd','version','boilerplate','deploy','pkg'} --ignore-existing
+
+# Boilerplate container-make targets.
+# Runs 'make' in the boilerplate backing container.
+# If the command fails, starts a shell in the container so you can debug.
+.PHONY: container-test
+container-test:
+	${BOILERPLATE_CONTAINER_MAKE} test
+
+.PHONY: container-generate
+container-generate:
+	${BOILERPLATE_CONTAINER_MAKE} generate
+
+.PHONY: container-lint
+container-lint:
+	${BOILERPLATE_CONTAINER_MAKE} lint
+
+.PHONY: container-validate
+container-validate:
+	${BOILERPLATE_CONTAINER_MAKE} validate
+
+.PHONY: container-coverage
+container-coverage:
+	${BOILERPLATE_CONTAINER_MAKE} coverage
