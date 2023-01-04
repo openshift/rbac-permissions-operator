@@ -94,4 +94,4 @@ LocalRegistryDockerfile
 # app-sre pipeline testing
 .docker/
 Dockerfile.olm-registry
-saas-managed-upgrade-operator-bundle/
+saas-rbac-permissions-operator-bundle/

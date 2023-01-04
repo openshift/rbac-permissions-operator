@@ -1,4 +1,4 @@
-package localmetrics
+package metrics
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	log = logf.Log.WithName("localmetrics_subjectpermission")
+	log = logf.Log.WithName("metrics_subjectpermission")
 
 	// RBACClusterwidePermissions for cluster-wide permissions
 	RBACClusterwidePermissions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -72,7 +72,7 @@ func addRBACClusterPermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 }
 
 // deleteRBACClusterPermissionMetric - delete a SubjectPermission from the
-// exported Prometheus data. Iterates through al the ClusterPermissions
+// exported Prometheus data. Iterates through all the ClusterPermissions
 func deleteRBACClusterPermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 	var r bool
 	for _, clusterPermissionName := range gp.Spec.ClusterPermissions {
@@ -108,7 +108,7 @@ func addRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 }
 
 // deleteRBACNamespacePermissionMetric - delete a SubjectPermission from the
-// exported Prometheus data. Iterates through al the Permissions
+// exported Prometheus data. Iterates through all the Permissions
 func deleteRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 	var r bool
 
