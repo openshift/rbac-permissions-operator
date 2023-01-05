@@ -152,6 +152,16 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 		return ctrl.Result{}, err
 	}
 
+	// eliminate terminating and non existing Namespace from the nsList.Items
+	newNsList := corev1.NamespaceList{}
+	for i := range nsList.Items {
+		if controllerutil.ValidateNamespace(&nsList.Items[i]) {
+			newNsList.Items = append(newNsList.Items, nsList.Items[i])
+		} else {
+			reqLogger.Info(fmt.Sprintf("Namespace '%s' doesn't exist or in terminating state", nsList.Items[i].Name))
+		}
+	}
+
 	if len(instance.Spec.Permissions) != 0 {
 		var CreatedRoleBindingCount int
 		var successfullRoleBindingNames []string
@@ -172,7 +182,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 			}
 
 			// list of all namespaces in safelist
-			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, nsList)
+			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, &newNsList)
 
 			var namespaceCount int
 			// for each safelisted namespace
