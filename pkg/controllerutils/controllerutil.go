@@ -169,3 +169,11 @@ func FindRbacCondition(conditions []managedv1alpha1.Condition, conditionType man
 	}
 	return nil
 }
+
+// check if namespace exist and NamespacePhase is non terminating
+func ValidateNamespace(namespace *corev1.Namespace) bool {
+	if namespace.Name != "" && namespace.Status.Phase != corev1.NamespaceTerminating {
+		return true
+	}
+	return false
+}

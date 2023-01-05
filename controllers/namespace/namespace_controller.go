@@ -92,6 +92,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+
 	// loop through all subject permissions
 	// get namespaces allowed in each permission
 	// if our namespace instance is in the safeList, create rolebinding and update condition
@@ -104,7 +105,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
 			// if namespace is in safeList, create RoleBinding
-			if NamespaceInSlice(instance.Name, safeList) {
+			if NamespaceInSlice(instance.Name, safeList) && controllerutil.ValidateNamespace(instance) {
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectKind, instance.Name)
 				// if rolebinding is already created in the namespace, continue to next iteration
