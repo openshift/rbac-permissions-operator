@@ -79,7 +79,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	operatorNS, err := k8sutil.GetWatchNamespace()
+	operatorNS, err := k8sutil.GetOperatorNamespaceEnv()
 	if err != nil {
 		setupLog.Error(err, "unable to determine operator namespace, please define OPERATOR_NAMESPACE")
 		os.Exit(1)
