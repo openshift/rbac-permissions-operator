@@ -20,6 +20,11 @@ import (
 	"context"
 	"flag"
 	"os"
+	"time"
+
+	zaplogfmt "github.com/sykesm/zap-logfmt"
+	uzap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/config"
@@ -35,6 +40,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
@@ -77,6 +83,14 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	// Add a custom logger to log in RFC3339 format instead of UTC
+	configLog := uzap.NewProductionEncoderConfig()
+	configLog.EncodeTime = func(ts time.Time, encoder zapcore.PrimitiveArrayEncoder) {
+		encoder.AppendString(ts.UTC().Format(time.RFC3339Nano))
+	}
+	logfmtEncoder := zaplogfmt.NewEncoder(configLog)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout), zap.Encoder(logfmtEncoder))
+	logf.SetLogger(logger)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	operatorNS, err := k8sutil.GetOperatorNamespaceEnv()
@@ -146,6 +160,7 @@ func main() {
 		WithPath(osdMetricsPath).
 		WithCollectors(metrics.MetricsList).
 		WithServiceMonitor().
+		WithServiceLabel(map[string]string{"name": config.OperatorName}).
 		GetConfig()
 
 	if err = osdmetrics.ConfigureMetrics(context.TODO(), *metricsServer); err != nil {
