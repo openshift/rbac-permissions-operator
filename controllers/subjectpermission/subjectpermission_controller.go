@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controllerutils"
-	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+	localmetrics "github.com/openshift/rbac-permissions-operator/pkg/metrics"
 	v1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
