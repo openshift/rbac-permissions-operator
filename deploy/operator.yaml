@@ -29,7 +29,7 @@ spec:
       containers:
         - name: rbac-permissions-operator
           # Replace this with the built image name
-          image: quay.io/travi/rbac-permissions-operator@sha256:56f8a40506a783d946682b86582bbcee1d2e25cb13f89a2fee75f4c657dc35dc
+          image: quay.io/app-sre/rbac-permissions-operator:latest
           command:
           - rbac-permissions-operator
           imagePullPolicy: Always
