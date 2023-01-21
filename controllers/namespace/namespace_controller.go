@@ -122,7 +122,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
 					return ctrl.Result{}, err
 				}
-				metrics.AddPrometheusMetric(&subjectPermission)
+				metrics.AddPrometheusMetric(&subPerm)
 				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
 				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}

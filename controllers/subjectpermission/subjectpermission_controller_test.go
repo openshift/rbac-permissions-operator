@@ -63,7 +63,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[1].Message).To(Equal("ClusterRole for ClusterPermission does not exist"))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleNameTwo")))
@@ -103,7 +103,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(2).SetArg(1, testconst.TestClusterRoleBinding),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[1].Message).To(Equal("Successfully created all ClusterRoleBindings"))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleNameTwo")))
@@ -221,7 +221,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[0].Message).To(Equal("Role for Permission does not exist"))
 							Expect(sp.Status.Conditions[0].ClusterRoleNames[0]).To(Equal("testClusterRoleName"))
 							Expect(sp.Status.Conditions[0].Status).To(Equal(true))
@@ -295,7 +295,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).SetArg(1, *testconst.TestRoleBinding),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[0].Message).To(Equal("Successfully created all roleBindings"))
 							Expect(sp.Status.Conditions[0].ClusterRoleNames[0]).To(Equal("exampleClusterRoleName"))
 							Expect(sp.Status.Conditions[0].Status).To(Equal(true))

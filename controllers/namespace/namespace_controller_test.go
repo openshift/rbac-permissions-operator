@@ -74,7 +74,7 @@ var _ = Describe("Namespace Controller", func() {
 					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[1].Message).To(Equal("Successfully created all roleBindings"))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("testClusterRoleName")))
@@ -141,7 +141,7 @@ var _ = Describe("Namespace Controller", func() {
 						client.InNamespace(testNamespace.Name),
 					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
-						func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",
 								testSubjectPermissionList.Items[0].Spec.Permissions[0].ClusterRoleName,
 								testSubjectPermissionList.Items[0].Spec.SubjectName)))
@@ -154,7 +154,7 @@ var _ = Describe("Namespace Controller", func() {
 						}),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission) error {
+						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
 							Expect(sp.Status.Conditions[1].Message).To(Equal("Successfully created all roleBindings"))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("testClusterRoleName")))
 							Expect(sp.Status.Conditions[1].ClusterRoleNames).ToNot(ContainElement(ContainSubstring("exampleClusterRoleName")))
@@ -325,7 +325,7 @@ var _ = Describe("Namespace Controller", func() {
 						client.InNamespace(testNamespace.Name),
 					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
-						func(ctx context.Context, rb *rbacv1.RoleBinding) error {
+						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",
 								testSubjectPermissionList.Items[0].Spec.Permissions[0].ClusterRoleName,
 								testSubjectPermissionList.Items[0].Spec.SubjectName)))
