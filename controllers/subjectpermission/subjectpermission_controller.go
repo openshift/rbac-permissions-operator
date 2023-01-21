@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	controllerutil "github.com/openshift/rbac-permissions-operator/pkg/controllerutils"
-	localmetrics "github.com/openshift/rbac-permissions-operator/pkg/metrics"
+	"github.com/openshift/rbac-permissions-operator/pkg/metrics"
 	v1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,7 +76,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	// which no longer exist).
 	if instance.DeletionTimestamp != nil {
 		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.ObjectMeta.GetName()))
-		localmetrics.DeletePrometheusMetric(instance)
+		metrics.DeletePrometheusMetric(instance)
 		return ctrl.Result{}, nil
 	}
 
@@ -126,6 +126,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 		} else {
 			clusterRoleBindingName := fmt.Sprintf("%s-%s", clusterRoleName, instance.Spec.SubjectName)
 			reqLogger.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", clusterRoleBindingName))
+			metrics.AddPrometheusMetric(instance)
 			// Created the ClusterRoleBinding, update status later
 			createdClusterRoleBinding = true
 		}
