@@ -30,7 +30,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
-	"github.com/openshift/rbac-permissions-operator/pkg/metrics"
 )
 
 var log = logf.Log.WithName("controller_namespace")
@@ -122,7 +121,6 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 					reqLogger.Error(err, failedToCreateRoleBindingMsg)
 					return ctrl.Result{}, err
 				}
-				metrics.AddPrometheusMetric(&subPerm)
 				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
 				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
 			}
