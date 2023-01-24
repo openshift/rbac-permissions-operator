@@ -150,12 +150,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ns, err := k8sutil.GetOperatorNamespaceEnv()
-	if err != nil {
-		os.Exit(1)
-	}
-
-	metricsServer := osdmetrics.NewBuilder(ns, config.OperatorName).
+	metricsServer := osdmetrics.NewBuilder(operatorNS, config.OperatorName).
 		WithPort(osdMetricsPort).
 		WithPath(osdMetricsPath).
 		WithCollectors(metrics.MetricsList).
