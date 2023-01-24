@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rbac-permissions-operator
+  namespace: openshift-rbac-permissions
 spec:
   replicas: 1
   selector:
@@ -44,3 +45,7 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "rbac-permissions-operator"
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace

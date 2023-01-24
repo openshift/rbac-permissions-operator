@@ -20,10 +20,15 @@ import (
 	"context"
 	"flag"
 	"os"
+	"time"
+
+	zaplogfmt "github.com/sykesm/zap-logfmt"
+	uzap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	osdmetrics "github.com/openshift/operator-custom-metrics/pkg/metrics"
 	"github.com/openshift/rbac-permissions-operator/config"
-	"github.com/openshift/rbac-permissions-operator/pkg/localmetrics"
+	"github.com/openshift/rbac-permissions-operator/pkg/metrics"
 	"github.com/operator-framework/operator-lib/leader"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -35,11 +40,14 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	nscontrollers "github.com/openshift/rbac-permissions-operator/controllers/namespace"
 	controllers "github.com/openshift/rbac-permissions-operator/controllers/subjectpermission"
+	"github.com/openshift/rbac-permissions-operator/pkg/k8sutil"
+
 	monitorv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
@@ -75,14 +83,28 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	// Add a custom logger to log in RFC3339 format instead of UTC
+	configLog := uzap.NewProductionEncoderConfig()
+	configLog.EncodeTime = func(ts time.Time, encoder zapcore.PrimitiveArrayEncoder) {
+		encoder.AppendString(ts.UTC().Format(time.RFC3339Nano))
+	}
+	logfmtEncoder := zaplogfmt.NewEncoder(configLog)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout), zap.Encoder(logfmtEncoder))
+	logf.SetLogger(logger)
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	operatorNS, err := k8sutil.GetOperatorNamespaceEnv()
+	if err != nil {
+		setupLog.Error(err, "unable to determine operator namespace, please define OPERATOR_NAMESPACE")
+		os.Exit(1)
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
-		Namespace:              config.OperatorNamespace,
+		Namespace:              operatorNS,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "bd14765d.openshift.io",
 	})
@@ -92,9 +114,17 @@ func main() {
 	}
 
 	// Ensure lock for leader election
-	err = leader.Become(context.TODO(), "rbac-permissions-operator-lock")
-	if err != nil {
-		setupLog.Error(err, "failed to create leader lock")
+	_, err = k8sutil.GetOperatorNamespace()
+	if err == nil {
+		err = leader.Become(context.TODO(), "rbac-permissions-operator-lock")
+		if err != nil {
+			setupLog.Error(err, "failed to create leader lock")
+			os.Exit(1)
+		}
+	} else if err == k8sutil.ErrRunLocal || err == k8sutil.ErrNoNamespace {
+		setupLog.Info("Skipping leader election; not running in a cluster.")
+	} else {
+		setupLog.Error(err, "Failed to get operator namespace")
 		os.Exit(1)
 	}
 
@@ -120,11 +150,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	metricsServer := osdmetrics.NewBuilder(config.OperatorNamespace, "localmetrics-"+config.OperatorName).
+	metricsServer := osdmetrics.NewBuilder(operatorNS, config.OperatorName).
 		WithPort(osdMetricsPort).
 		WithPath(osdMetricsPath).
-		WithCollectors(localmetrics.MetricsList).
+		WithCollectors(metrics.MetricsList).
 		WithServiceMonitor().
+		WithServiceLabel(map[string]string{"name": config.OperatorName}).
 		GetConfig()
 
 	if err = osdmetrics.ConfigureMetrics(context.TODO(), *metricsServer); err != nil {

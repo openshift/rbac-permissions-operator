@@ -1,4 +1,4 @@
-package localmetrics
+package metrics
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	log = logf.Log.WithName("localmetrics_subjectpermission")
+	log = logf.Log.WithName("metrics_subjectpermission")
 
 	// RBACClusterwidePermissions for cluster-wide permissions
 	RBACClusterwidePermissions = prometheus.NewGaugeVec(prometheus.GaugeOpts{

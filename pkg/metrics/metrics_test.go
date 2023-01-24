@@ -1,4 +1,4 @@
-package localmetrics
+package metrics
 
 import (
 	"testing"
