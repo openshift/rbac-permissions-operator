@@ -30,7 +30,6 @@ func TestGetClusterRoleBindingsForSubjectPermissions(t *testing.T) {
 					{
 						ClusterRoleName:        "sre-admins-project",
 						NamespacesAllowedRegex: "^(default|openshift.*|kube.*)$",
-						AllowFirst:             true,
 					},
 				},
 			},
