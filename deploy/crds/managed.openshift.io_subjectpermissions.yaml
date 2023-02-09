@@ -48,11 +48,6 @@ spec:
                   description: Permission defines a Role that is bound to the Subject
                     Allowed in specific Namespaces
                   properties:
-                    allowFirst:
-                      description: Flag to indicate if "allow" regex is applied first
-                        If 'true' order is Allow then Deny, Else order is Deny then
-                        Allow
-                      type: boolean
                     clusterRoleName:
                       description: ClusterRoleName to bind to the Subject as a RoleBindings
                         in allowed Namespaces
@@ -64,7 +59,6 @@ spec:
                       description: NamespacesDeniedRegex representing denied Namespaces
                       type: string
                   required:
-                  - allowFirst
                   - clusterRoleName
                   type: object
                 type: array

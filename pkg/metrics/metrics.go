@@ -101,7 +101,6 @@ func addRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) {
 			"cluster_role_name":       permission.ClusterRoleName,
 			"namespace_allow":         permission.NamespacesAllowedRegex,
 			"namespace_deny":          permission.NamespacesDeniedRegex,
-			"allow_first":             allowFirstToString(permission.AllowFirst),
 			"state":                   "1",
 		}).Set(1.0)
 	}
@@ -119,7 +118,6 @@ func deleteRBACNamespacePermissionMetric(gp *managedv1alpha1.SubjectPermission) 
 			permission.ClusterRoleName,
 			permission.NamespacesAllowedRegex,
 			permission.NamespacesDeniedRegex,
-			allowFirstToString(permission.AllowFirst),
 			"1",
 		)
 		// It's possible that we weren't able to delete the metric, so let's log a message to that effect.
