@@ -63,10 +63,8 @@ spec:
       clusterRoleName: dedicated-admins-project
       namespacesAllowedRegex: ".*"
       namespacesDeniedRegex: "(^kube-.*|^openshift.*|^ops-health-monitoring$|^management-infra$|^default$|^logging$|^sre-app-check$)"
-      allowFirst: true
     -
       clusterRoleName: admin
       namespacesAllowedRegex: ".*"
       namespacesDeniedRegex: "(^kube-.*|^openshift.*|^ops-health-monitoring$|^management-infra$|^default$|^logging$|^sre-app-check$)"
-      allowFirst: true
 ```

@@ -46,9 +46,6 @@ type Permission struct {
 	NamespacesAllowedRegex string `json:"namespacesAllowedRegex,omitempty"`
 	// NamespacesDeniedRegex representing denied Namespaces
 	NamespacesDeniedRegex string `json:"namespacesDeniedRegex,omitempty"`
-	// Flag to indicate if "allow" regex is applied first
-	// If 'true' order is Allow then Deny, Else order is Deny then Allow
-	AllowFirst bool `json:"allowFirst"`
 }
 
 // +k8s:openapi-gen=true
