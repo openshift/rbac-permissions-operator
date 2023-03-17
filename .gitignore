@@ -93,5 +93,4 @@ LocalRegistryDockerfile
 .venv/*
 # app-sre pipeline testing
 .docker/
-Dockerfile.olm-registry
 saas-rbac-permissions-operator-bundle/
