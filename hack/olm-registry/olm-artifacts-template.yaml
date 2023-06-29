@@ -101,7 +101,7 @@ objects:
         sourceType: grpc
         grpcPodConfig:
           securityContextConfig: restricted
-            nodeSelector:
+          nodeSelector:
             node-role.kubernetes.io: infra
           tolerations:
             - effect: NoSchedule
