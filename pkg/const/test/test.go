@@ -145,6 +145,24 @@ var (
 		},
 	}
 
+	TestRoleBindingSA = &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "examplePermissionClusterRoleName-exampleGroupName",
+			Namespace: "examplenamespace",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      "exampleGroupName",
+				Namespace: "exampleGroupNamespace",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "examplePermissionClusterRoleName",
+		},
+	}
+
 	TestRoleBindingList = &rbacv1.RoleBindingList{
 		Items: []rbacv1.RoleBinding{
 			*TestRoleBinding,

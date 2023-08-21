@@ -42,6 +42,14 @@ func schema_openshift_rbac_permissions_operator_api_v1alpha1_SubjectPermissionSp
 							Format:      "",
 						},
 					},
+					"subjectNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace of the Subject granted permissions by the operator",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"clusterPermissions": {
 						SchemaProps: spec.SchemaProps{
 							Description: "List of permissions applied at Cluster scope",

@@ -90,8 +90,13 @@ var _ = Describe("Controller Utils Tests", func() {
 	Context("Running NewRoleBindingForClusterRole", func() {
 
 		It("Should return the expected rolebinding", func() {
-			rb := NewRoleBindingForClusterRole("examplePermissionClusterRoleName", "exampleGroupName", "Group", "examplenamespace")
+			rb := NewRoleBindingForClusterRole("examplePermissionClusterRoleName", "exampleGroupName", "", "Group", "examplenamespace")
 			Expect(rb).To(Equal(testconst.TestRoleBinding))
+		})
+
+		It("Should return the expected rolebinding for SA", func() {
+			rb := NewRoleBindingForClusterRole("examplePermissionClusterRoleName", "exampleGroupName", "exampleGroupNamespace", "ServiceAccount", "examplenamespace")
+			Expect(rb).To(Equal(testconst.TestRoleBindingSA))
 		})
 	})
 

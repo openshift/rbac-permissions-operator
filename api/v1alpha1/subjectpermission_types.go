@@ -29,6 +29,9 @@ type SubjectPermissionSpec struct {
 	SubjectKind string `json:"subjectKind"`
 	// Name of the Subject granted permissions by the operator
 	SubjectName string `json:"subjectName"`
+	// Namespace of the Subject granted permissions by the operator
+	// +optional
+	SubjectNamespace string `json:"subjectNamespace"`
 	// List of permissions applied at Cluster scope
 	// +optional
 	ClusterPermissions []string `json:"clusterPermissions,omitempty"`

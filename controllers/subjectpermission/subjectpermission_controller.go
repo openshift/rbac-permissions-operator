@@ -196,7 +196,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 				_ = r.Client.List(context.TODO(), rbList, opts...)
 
 				// create roleBinding
-				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind, ns)
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
 
 				err := r.Client.Create(context.TODO(), roleBinding)
 				if err != nil {
