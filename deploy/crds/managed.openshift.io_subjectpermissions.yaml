@@ -70,6 +70,9 @@ spec:
               subjectName:
                 description: Name of the Subject granted permissions by the operator
                 type: string
+              subjectNamespace:
+                description: Namespace of the Subject granted permissions by the operator
+                type: string
             required:
             - subjectKind
             - subjectName

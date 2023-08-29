@@ -97,8 +97,8 @@ func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) [
 }
 
 // NewRoleBindingForClusterRole creates and returns valid RoleBinding
-func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectKind, namespace string) *v1.RoleBinding {
-	return &v1.RoleBinding{
+func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectNamespace, subjectKind, namespace string) *v1.RoleBinding {
+	roleBinding := &v1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterRoleName + "-" + subjectName,
 			Namespace: namespace,
@@ -114,6 +114,12 @@ func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectKind, nam
 			Name: clusterRoleName,
 		},
 	}
+
+	if len(subjectNamespace) > 0 {
+		roleBinding.Subjects[0].Namespace = subjectNamespace
+	}
+
+	return roleBinding
 }
 
 // UpdateCondition of SubjectPermission
