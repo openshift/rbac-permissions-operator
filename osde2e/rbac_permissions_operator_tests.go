@@ -13,8 +13,10 @@ import (
 	. "github.com/openshift/osde2e-common/pkg/gomega/assertions"
 	. "github.com/openshift/osde2e-common/pkg/gomega/matchers"
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
+	opconfig "github.com/openshift/rbac-permissions-operator/config"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
@@ -28,7 +30,8 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 	)
 	ginkgo.BeforeAll(func() {
 		var err error
-		client, err = openshift.New()
+		log.SetLogger(ginkgo.GinkgoLogr)
+		client, err = openshift.New(ginkgo.GinkgoLogr)
 		Expect(err).ShouldNot(HaveOccurred(), "resources.New error")
 		err = managedv1alpha1.AddToScheme(client.GetScheme())
 		Expect(err).ShouldNot(HaveOccurred(), "unable to register scheme")
@@ -73,5 +76,9 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 
 	// TODO: ginkgo.It("reconciles subjectpermissions", func(ctx context.Context) { })
 
-	// TODO: ginkgo.It("can be upgraded", ...)
+	ginkgo.It("can be upgraded", func(ctx context.Context) {
+		ginkgo.By("forcing operator upgrade")
+		err := client.UpgradeOperator(ctx, opconfig.OperatorName, namespace)
+		Expect(err).NotTo(HaveOccurred(), "operator upgrade failed")
+	})
 })

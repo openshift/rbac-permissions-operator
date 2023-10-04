@@ -174,8 +174,8 @@ github.com/openshift/api v0.0.0-20220414050251-a83e6f8f1d50/go.mod h1:F/eU6jgr6Q
 github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/operator-custom-metrics v0.4.3-0.20220322205053-7b528cc0d6eb h1:ujrK5dNcJKgDoBGPch7fzttbK7ohirg39gVvIYVMtE8=
 github.com/openshift/operator-custom-metrics v0.4.3-0.20220322205053-7b528cc0d6eb/go.mod h1:ttINLaaHI1UhCW8j282QsUeDPb3qbkudMBtbHPntBM4=
-github.com/openshift/osde2e-common v0.0.0-20230607130803-f152ba7eaf6e h1:e6PTId56fHUt0dlK/PFLWIgsF0IE0Tnb10SZNseHkwM=
-github.com/openshift/osde2e-common v0.0.0-20230607130803-f152ba7eaf6e/go.mod h1:Z/ys/qUXzs29Q4TuJVhpHsvW4mlGuqKINSSsDkJXRDk=
+github.com/openshift/osde2e-common v0.0.0-20231001194517-f7307c95ca23 h1:eJsWBr8L1AC0jCTWmvrQ+cYgKQtDPPhmHwlroDvmdYo=
+github.com/openshift/osde2e-common v0.0.0-20231001194517-f7307c95ca23/go.mod h1:dpXYWexti4KLwfRubI8puyRO7zdR4YomYAAYakpCjpE=
 github.com/operator-framework/operator-lib v0.10.0 h1:tTjrt8Udi0msABkMpgxKHp7sXKnC73jFPO5Col0tWso=
 github.com/operator-framework/operator-lib v0.10.0/go.mod h1:sdCls/olFjSHLXU0bHlaPtmyeIdentoxz/9miyw27kw=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
