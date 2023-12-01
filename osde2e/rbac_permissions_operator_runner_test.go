@@ -5,11 +5,10 @@
 package osde2etests
 
 import (
-	"path/filepath"
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"path/filepath"
+	"testing"
 )
 
 const (
@@ -24,4 +23,5 @@ func TestRbacPermissionsOperator(t *testing.T) {
 	suiteConfig, reporterConfig := GinkgoConfiguration()
 	reporterConfig.JUnitReport = filepath.Join(testResultsDirectory, jUnitOutputFilename)
 	RunSpecs(t, "Rbac Permissions Operator", suiteConfig, reporterConfig)
+
 }
