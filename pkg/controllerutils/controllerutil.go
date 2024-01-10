@@ -96,12 +96,25 @@ func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) [
 
 }
 
+
 // NewRoleBindingForClusterRole creates and returns valid RoleBinding
-func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectNamespace, subjectKind, namespace string) *v1.RoleBinding {
+func NewRoleBindingForClusterRole(cr *v1.ClusterRole, subjectName, subjectNamespace, subjectKind, namespace string) *v1.RoleBinding {
+	boolFalse := false
+
 	roleBinding := &v1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterRoleName + "-" + subjectName,
+			Name:      cr.Name + "-" + subjectName,
 			Namespace: namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         "v1",
+					BlockOwnerDeletion: &boolFalse,
+					Controller:         &boolFalse,
+					Kind:               cr.Kind,
+					Name:               cr.ObjectMeta.Name,
+					UID:                cr.ObjectMeta.UID,
+				},
+			},
 		},
 		Subjects: []v1.Subject{
 			{
@@ -110,8 +123,8 @@ func NewRoleBindingForClusterRole(clusterRoleName, subjectName, subjectNamespace
 			},
 		},
 		RoleRef: v1.RoleRef{
-			Kind: "ClusterRole",
-			Name: clusterRoleName,
+			Kind: cr.Kind,
+			Name: cr.ObjectMeta.Name,
 		},
 	}
 

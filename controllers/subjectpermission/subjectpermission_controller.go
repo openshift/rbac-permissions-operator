@@ -28,6 +28,7 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -181,6 +182,23 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 				return ctrl.Result{}, nil
 			}
 
+			// lookup clusterrole, needed for ownerref on role bindings
+			clusterRole := &v1.ClusterRole{}
+			clusterRoleNamespacedName := types.NamespacedName{
+				Name:      permission.ClusterRoleName,
+			}
+			err := r.Client.Get(context.TODO(), clusterRoleNamespacedName, clusterRole)
+			if err != nil {
+				if k8serr.IsNotFound(err) {
+					// object not found, could have been deleted after reconcile request.
+					// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+					// Return and don't requeue
+					return ctrl.Result{}, nil
+				}
+				// Error reading the object - requeue the request.
+				return ctrl.Result{}, err
+			}
+
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, &newNsList)
 
@@ -196,7 +214,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 				_ = r.Client.List(context.TODO(), rbList, opts...)
 
 				// create roleBinding
-				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(clusterRole, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
 
 				err := r.Client.Create(context.TODO(), roleBinding)
 				if err != nil {

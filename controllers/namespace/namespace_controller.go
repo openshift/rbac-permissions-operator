@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -101,12 +102,29 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 		for _, permission := range subPerm.Spec.Permissions {
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 
+			// lookup clusterrole, needed for ownerref on role bindings
+			clusterRole := &v1.ClusterRole{}
+			clusterRoleNamespacedName := types.NamespacedName{
+				Name:      permission.ClusterRoleName,
+			}
+			err := r.Client.Get(context.TODO(), clusterRoleNamespacedName, clusterRole)
+			if err != nil {
+				if k8serr.IsNotFound(err) {
+					// object not found, could have been deleted after reconcile request.
+					// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+					// Return and don't requeue
+					return ctrl.Result{}, nil
+				}
+				// Error reading the object - requeue the request.
+				return ctrl.Result{}, err
+			}
+
 			// list of all namespaces in safelist
 			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
 			// if namespace is in safeList, create RoleBinding
 			if NamespaceInSlice(instance.Name, safeList) && controllerutil.ValidateNamespace(instance) {
 
-				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectNamespace, subPerm.Spec.SubjectKind, instance.Name)
+				roleBinding := controllerutil.NewRoleBindingForClusterRole(clusterRole, subPerm.Spec.SubjectName, subPerm.Spec.SubjectNamespace, subPerm.Spec.SubjectKind, instance.Name)
 				// if rolebinding is already created in the namespace, continue to next iteration
 				if RolebindingInNamespace(roleBinding, roleBindingList) {
 					continue
