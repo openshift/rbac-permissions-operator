@@ -84,6 +84,11 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred(), "Unable to create test namespace")
 		clusterRoles, clusterRoleBindings, roleBindings := getSubjectPermissionRBACInfo(ctx, client, namespace, spName)
 
+		ginkgo.DeferCleanup(func(ctx context.Context) {
+			ginkgo.By("Deleting test namespace " + testNamespaceName)
+			Expect(client.Delete(ctx, testNamespace)).Should(Succeed(), "Failed to test delete namespace")
+		})
+
 		var allClusterRoles rbacv1.ClusterRoleList
 		err = client.WithNamespace(testNamespaceName).List(ctx, &allClusterRoles)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterroles")
@@ -105,11 +110,6 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			Expect(&allRoleBindings).Should(ContainItemWithPrefix(roleBindingName), "subjectpermissions rolebinding - "+roleBindingName+" was not found for "+spName)
 		}
 
-		ginkgo.By("Deleting test namespace " + testNamespaceName)
-		err = client.Delete(ctx, testNamespace)
-		if err != nil {
-			ginkgo.GinkgoLogr.Info("Could not delete test namespace: " + err.Error())
-		}
 	})
 
 	ginkgo.It("can be upgraded", func(ctx context.Context) {
