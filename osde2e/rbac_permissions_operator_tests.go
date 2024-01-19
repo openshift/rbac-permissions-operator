@@ -6,6 +6,8 @@ package osde2etests
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,7 +18,6 @@ import (
 	"github.com/openshift/rbac-permissions-operator/config"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -92,6 +93,7 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		var allClusterRoles rbacv1.ClusterRoleList
 		err = client.WithNamespace(testNamespaceName).List(ctx, &allClusterRoles)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterroles")
+		ginkgo.By("Checking cluterroles in " + testNamespaceName)
 		for _, clusterRoleName := range clusterRoles {
 			Expect(&allClusterRoles).Should(ContainItemWithPrefix(clusterRoleName), "subjectpermission clusterrole - "+clusterRoleName+" was not found for "+spName)
 		}
@@ -99,15 +101,26 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		var allClusterRoleBindings rbacv1.ClusterRoleBindingList
 		err = client.WithNamespace(testNamespaceName).List(ctx, &allClusterRoleBindings)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterrolebindings")
+		ginkgo.By("Checking cluterrolebindings in " + testNamespaceName)
 		for _, clusterRoleBindingName := range clusterRoleBindings {
 			Expect(&allClusterRoleBindings).Should(ContainItemWithPrefix(clusterRoleBindingName), "subjectpermissions clusterrolebinding - "+clusterRoleBindingName+" was not found for "+spName)
 		}
 
-		var allRoleBindings rbacv1.RoleBindingList
-		err = client.WithNamespace(testNamespaceName).List(ctx, &allRoleBindings)
-		Expect(err).ShouldNot(HaveOccurred(), "failed to list rolebindings")
+		ginkgo.By("Checking rolebindings in " + testNamespaceName)
 		for _, roleBindingName := range roleBindings {
-			Expect(&allRoleBindings).Should(ContainItemWithPrefix(roleBindingName), "subjectpermissions rolebinding - "+roleBindingName+" was not found for "+spName)
+			// can not use "ContainItemWithPrefix" matcher as is, because 120 second polling is needed
+			// rolebinding is observed to take a bit more time to create especially if the operator has just been upgraded
+			Eventually(ctx, func(ctx context.Context) (bool, error) {
+				var allRoleBindings rbacv1.RoleBindingList
+				err = client.WithNamespace(testNamespaceName).List(ctx, &allRoleBindings)
+				for _, nsRoleBinding := range allRoleBindings.Items {
+					if strings.HasPrefix(nsRoleBinding.Name, roleBindingName) {
+						return true, nil
+					}
+				}
+				return false, err
+			}).WithTimeout(120*time.Second).WithPolling(2*time.Second).WithContext(ctx).Should(BeTrue(),
+				"subjectpermissions rolebinding - "+roleBindingName+" was not found for "+spName)
 		}
 
 	})
