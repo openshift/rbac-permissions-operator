@@ -219,7 +219,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 		}
 
 		if len(instance.Spec.Permissions) == CreatedRoleBindingCount {
-			// update condition if all RoleBindings added succesfully
+			// update condition if all RoleBindings added successfully
 			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Successfully created all roleBindings", successfullRoleBindingNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
 			err = r.Client.Status().Update(context.TODO(), instance)
 			if err != nil {
