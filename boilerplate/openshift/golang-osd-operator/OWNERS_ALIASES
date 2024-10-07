@@ -5,11 +5,9 @@
 aliases:
   srep-functional-team-aurora:
     - abyrne55
-    - AlexVulaj
     - dakotalongRH
     - lnguyen1401
     - luis-falcon
-    - rafael-azevedo
     - reedcort
   srep-functional-team-fedramp:
     - tonytheleg
@@ -44,7 +42,6 @@ aliases:
     - aliceh
     - anispate
     - clcollins
-    - iamkirkbater
     - Mhodesty
     - nephomaniac
     - tnierman
@@ -71,8 +68,8 @@ aliases:
     - jbpratt
     - yiqinzhang
   srep-functional-leads:
-    - rafael-azevedo
-    - iamkirkbater
+    - abyrne55
+    - clcollins
     - Nikokolas3270
     - theautoroboto
     - bmeng
@@ -81,6 +78,8 @@ aliases:
     - ravitri
     - mmazur
   srep-team-leads:
+    - rafael-azevedo
+    - iamkirkbater
     - NautiluX
     - rogbas
     - fahlmant
