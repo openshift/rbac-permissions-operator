@@ -16,7 +16,7 @@ predeploy: predeploy-rbac-permissions-operator
 
 .PHONY: deploy-local
 deploy-local: ## Deploy Operator locally
-	@OPERATOR_NAMESPACE=rbac-permissions-operator go run main.go
+	@OPERATOR_NAMESPACE=openshift-rbac-permissions go run main.go
 
 .PHONY: tools
 tools: ## Install local go tools for RPO
