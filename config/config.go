@@ -18,4 +18,6 @@ const (
 	OperatorConfigMapName string = "rbac-permissions-operator"
 	OperatorName          string = "rbac-permissions-operator"
 	OperatorNamespace     string = "openshift-rbac-permissions"
+
+	EnableOLMSkipRange = "true"
 )
