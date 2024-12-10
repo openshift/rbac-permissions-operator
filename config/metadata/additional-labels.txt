@@ -1,0 +1,1 @@
+LABEL com.redhat.component="openshift-rbac-permissions-operator"       io.k8s.description="..."       description="..."       distribution-scope="public"       name="openshift/rbac-permissions-operator"       url="https://github.com/openshift/rbac-permissions-operator"       vendor="Red Hat, Inc."       release="v0.0.0"       version="v0.0.0"
