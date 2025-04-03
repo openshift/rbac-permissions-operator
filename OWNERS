@@ -9,6 +9,8 @@ reviewers:
 approvers:
 - bmeng
 - ravitri
+- srep-functional-leads
+- srep-team-leads
 
 maintainers:
 - ravitri
