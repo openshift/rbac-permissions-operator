@@ -55,7 +55,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 
 	// Fetch the Namespace instance
 	instance := &corev1.Namespace{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -68,14 +68,14 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 	}
 
 	namespaceList := &corev1.NamespaceList{}
-	err = r.Client.List(context.TODO(), namespaceList)
+	err = r.List(context.TODO(), namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
 		return ctrl.Result{}, err
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
-	err = r.Client.List(context.TODO(), subjectPermissionList)
+	err = r.List(context.TODO(), subjectPermissionList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return ctrl.Result{}, err
@@ -86,7 +86,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 	opts := []client.ListOption{
 		client.InNamespace(request.Name),
 	}
-	err = r.Client.List(context.TODO(), roleBindingList, opts...)
+	err = r.List(context.TODO(), roleBindingList, opts...)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
 		return ctrl.Result{}, err
@@ -112,7 +112,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 					continue
 				}
 
-				err := r.Client.Create(context.TODO(), roleBinding)
+				err := r.Create(context.TODO(), roleBinding)
 				if err != nil {
 					if k8serr.IsAlreadyExists(err) {
 						continue
