@@ -59,7 +59,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 
 	// Fetch the SubjectPermission instance
 	instance := &managedv1alpha1.SubjectPermission{}
-	err := r.Client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -75,14 +75,14 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	// Prometheus metrics, otherwise there will be stale data exported (for CRs
 	// which no longer exist).
 	if instance.DeletionTimestamp != nil {
-		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.ObjectMeta.GetName()))
+		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.GetName()))
 		localmetrics.DeletePrometheusMetric(instance)
 		return ctrl.Result{}, nil
 	}
 
 	// get list of clusterRole on k8s
 	clusterRoleList := &v1.ClusterRoleList{}
-	err = r.Client.List(context.TODO(), clusterRoleList)
+	err = r.List(context.TODO(), clusterRoleList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleList")
 		return ctrl.Result{}, err
@@ -90,7 +90,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 
 	// get a list of clusterRoleBinding from k8s cluster list
 	clusterRoleBindingList := &v1.ClusterRoleBindingList{}
-	err = r.Client.List(context.TODO(), clusterRoleBindingList)
+	err = r.List(context.TODO(), clusterRoleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
 		return ctrl.Result{}, err
@@ -117,7 +117,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	for _, clusterRoleName := range instance.Spec.ClusterPermissions {
 		// create a new ClusterRoleBinding
 		newCRB := NewClusterRoleBinding(clusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind)
-		err := r.Client.Create(context.TODO(), newCRB)
+		err := r.Create(context.TODO(), newCRB)
 		if err != nil {
 			if !k8serr.IsAlreadyExists(err) {
 				reqLogger.Error(err, "Failed to create ClusterRoleBinding")
@@ -146,7 +146,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 
 	// get the NamespaceList
 	nsList := &corev1.NamespaceList{}
-	err = r.Client.List(context.TODO(), nsList)
+	err = r.List(context.TODO(), nsList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get NamespaceList")
 		return ctrl.Result{}, err
@@ -193,12 +193,12 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 					client.InNamespace(ns),
 				}
 				// TODO: Check error
-				_ = r.Client.List(context.TODO(), rbList, opts...)
+				_ = r.List(context.TODO(), rbList, opts...)
 
 				// create roleBinding
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
 
-				err := r.Client.Create(context.TODO(), roleBinding)
+				err := r.Create(context.TODO(), roleBinding)
 				if err != nil {
 					if k8serr.IsAlreadyExists(err) {
 						continue
