@@ -5,10 +5,12 @@ reviewers:
 - devppratik
 - Tafhim
 - tkong-redhat
+- srep-functional-team-thor
 
 approvers:
-- bmeng
-- ravitri
+- srep-functional-leads
+- srep-team-leads
 
 maintainers:
 - ravitri
+- smarthall
