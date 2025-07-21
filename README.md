@@ -18,6 +18,8 @@ To avoid giving admin permissions to specific namespaces (eg. infra/cluster-admi
 form of NamespacesAllowedRegex and NamespacesDeniedRegex. These will help us determine which namespaces should get
 the RoleBinding assignment.
 
+![Components](docs/images/rbac_permissions_components.png)
+
 ## Metrics
 
 ## Testing, Locally (CRC)
@@ -68,3 +70,6 @@ spec:
       namespacesAllowedRegex: ".*"
       namespacesDeniedRegex: "(^kube-.*|^openshift.*|^ops-health-monitoring$|^management-infra$|^default$|^logging$|^sre-app-check$)"
 ```
+# Workflow
+
+![Workflow](docs/images/rbac_permissions_flow.png)
