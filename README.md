@@ -18,7 +18,7 @@ To avoid giving admin permissions to specific namespaces (eg. infra/cluster-admi
 form of NamespacesAllowedRegex and NamespacesDeniedRegex. These will help us determine which namespaces should get
 the RoleBinding assignment.
 
-![Components](docs/images/rbac-components.png)
+![Components](docs/images/rbac_permissions_components.png)
 
 ## Metrics
 
@@ -72,4 +72,4 @@ spec:
 ```
 # Workflow
 
-![Workflow](docs/images/rbac-permissions-flow.png)
+![Workflow](docs/images/rbac_permissions_flow.png)
