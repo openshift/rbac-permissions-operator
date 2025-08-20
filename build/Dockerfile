@@ -8,7 +8,7 @@ COPY . .
 RUN make go-build
 
 ####
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1755105495
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1754584681
 
 ENV USER_UID=1001 \
     USER_NAME=rbac-permissions-operator
