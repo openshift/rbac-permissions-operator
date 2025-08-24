@@ -10,7 +10,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift/operator-custom-metrics v0.5.1
-	github.com/openshift/osde2e-common v0.0.0-20250804220455-7806b74ec777
+	github.com/openshift/osde2e-common v0.0.0-20250812151315-081151385798
 	github.com/operator-framework/operator-lib v0.10.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.62.0
 	github.com/prometheus/client_golang v1.23.0
