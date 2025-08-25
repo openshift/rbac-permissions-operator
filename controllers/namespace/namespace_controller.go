@@ -55,7 +55,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 
 	// Fetch the Namespace instance
 	instance := &corev1.Namespace{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -64,21 +64,21 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to get Namespace %s: %w", request.NamespacedName, err)
 	}
 
 	namespaceList := &corev1.NamespaceList{}
-	err = r.List(context.TODO(), namespaceList)
+	err = r.List(ctx, namespaceList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get namespaceList")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to list Namespaces: %w", err)
 	}
 
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
-	err = r.List(context.TODO(), subjectPermissionList)
+	err = r.List(ctx, subjectPermissionList)
 	if err != nil {
-		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
-		return ctrl.Result{}, err
+		reqLogger.Error(err, "Failed to get subjectPermissionList")
+		return ctrl.Result{}, fmt.Errorf("failed to list SubjectPermissions: %w", err)
 	}
 
 	roleBindingList := &v1.RoleBindingList{}
@@ -86,10 +86,10 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 	opts := []client.ListOption{
 		client.InNamespace(request.Name),
 	}
-	err = r.List(context.TODO(), roleBindingList, opts...)
+	err = r.List(ctx, roleBindingList, opts...)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get rolebindingList")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to list RoleBindings in namespace %s: %w", request.Name, err)
 	}
 
 	// loop through all subject permissions
@@ -112,24 +112,23 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 					continue
 				}
 
-				err := r.Create(context.TODO(), roleBinding)
-				if err != nil {
-					if k8serr.IsAlreadyExists(err) {
-						continue
-					}
-					failedToCreateRoleBindingMsg := fmt.Sprintf("Failed to create rolebinding %s", roleBinding.Name)
-					reqLogger.Error(err, failedToCreateRoleBindingMsg)
-					return ctrl.Result{}, err
+				err := r.Create(ctx, roleBinding)
+							if err != nil {
+				if k8serr.IsAlreadyExists(err) {
+					continue
 				}
-				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
-				reqLogger.Info(fmt.Sprintf("RoleBinding %s created successfully in namespace %s", roleBindingName, instance.Name))
+				reqLogger.Error(err, "Failed to create RoleBinding", "name", roleBinding.Name, "namespace", instance.Name)
+				return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding %s in namespace %s: %w", roleBinding.Name, instance.Name, err)
+			}
+							roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
+			reqLogger.Info("RoleBinding created successfully", "name", roleBindingName, "namespace", instance.Name, "subject", subjectPermission.Spec.SubjectName)
 			}
 		}
 		subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-		err = r.Client.Status().Update(context.TODO(), &subPerm)
+		err = r.Client.Status().Update(ctx, &subPerm)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to update SubjectPermission status after creating RoleBindings: %w", err)
 		}
 	}
 
