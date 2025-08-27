@@ -10,8 +10,8 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "push"
       && target_branch == "master"
-      && ("**/*.go".pathChanged() ||
-          "**/go.*".pathChanged() ||
+      && ("{.,**}/*.go".pathChanged() ||
+          "{.,**}/go.*".pathChanged() ||
           "build/Dockerfile".pathChanged() ||
           ".tekton/rbac-permissions-operator-push.yaml".pathChanged() )
   creationTimestamp: null
