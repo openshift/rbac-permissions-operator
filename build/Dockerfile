@@ -1,5 +1,5 @@
 FROM quay.io/redhat-services-prod/openshift/boilerplate:image-v8.1.0 AS builder
-
+MAINTAINER ARUN
 RUN mkdir -p /workdir
 WORKDIR /workdir
 COPY go.mod go.sum ./
