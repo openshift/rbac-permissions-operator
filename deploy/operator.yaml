@@ -33,6 +33,13 @@ spec:
           command:
           - rbac-permissions-operator
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
           env:
             - name: WATCH_NAMESPACE
               value: ""
