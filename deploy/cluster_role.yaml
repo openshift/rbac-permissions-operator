@@ -4,13 +4,56 @@ metadata:
   creationTimestamp: null
   name: rbac-permissions-operator-cluster-admin
 rules:
+# Core resources for operator functionality
 - apiGroups:
-  - '*'
+  - ""
   resources:
-  - '*'
+  - namespaces
   verbs:
-  - '*'
-- nonResourceURLs:
-  - '*'
+  - get
+  - list
+  - watch
+# RBAC resources that the operator manages
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  - clusterrolebindings
+  - roles
+  - rolebindings
   verbs:
-  - '*'
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+# Custom resources managed by this operator
+- apiGroups:
+  - managed.openshift.io
+  resources:
+  - subjectpermissions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - managed.openshift.io
+  resources:
+  - subjectpermissions/status
+  verbs:
+  - get
+  - update
+  - patch
+# Events for logging and debugging
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
