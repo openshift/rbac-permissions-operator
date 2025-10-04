@@ -393,6 +393,21 @@ var _ = Describe("Namespace Controller", func() {
 		})
 	})
 
+	// Additional edge case test
+	When("SubjectPermissionList fails", func() {
+		It("Should return error", func() {
+			listError := fmt.Errorf("subjectpermission list failed")
+			gomock.InOrder(
+				mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, *testNamespace),
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).Return(listError),
+			)
+			_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to list SubjectPermissions"))
+		})
+	})
+
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
