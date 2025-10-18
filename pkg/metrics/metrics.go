@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"time"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,10 +38,60 @@ var (
 		"state",
 	})
 
+	// ReconcileDuration tracks reconciliation duration
+	ReconcileDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "rbac_permissions_operator_reconcile_duration_seconds",
+		Help: "Time spent reconciling SubjectPermissions",
+		Buckets: prometheus.DefBuckets,
+	}, []string{
+		"controller",
+		"result",
+	})
+
+	// ReconcileTotal tracks total reconciliations
+	ReconcileTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "rbac_permissions_operator_reconcile_total",
+		Help: "Total number of reconciliations performed",
+	}, []string{
+		"controller",
+		"result",
+	})
+
+	// ReconcileErrors tracks reconciliation errors
+	ReconcileErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "rbac_permissions_operator_reconcile_errors_total",
+		Help: "Total number of reconciliation errors",
+	}, []string{
+		"controller",
+		"error_type",
+	})
+
+	// ResourcesCreated tracks created RBAC resources
+	ResourcesCreated = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "rbac_permissions_operator_resources_created_total",
+		Help: "Total number of RBAC resources created",
+	}, []string{
+		"resource_type",
+		"subject_name",
+	})
+
+	// ValidationFailures tracks validation failures
+	ValidationFailures = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "rbac_permissions_operator_validation_failures_total",
+		Help: "Total number of SubjectPermission validation failures",
+	}, []string{
+		"validation_type",
+	})
+
 	// MetricsList all metrics exported by this package
 	MetricsList = []prometheus.Collector{
 		RBACClusterwidePermissions,
 		RBACNamespacePermissions,
+		ReconcileDuration,
+		ReconcileTotal,
+		ReconcileErrors,
+		ResourcesCreated,
+		ValidationFailures,
 	}
 )
 
@@ -136,4 +187,29 @@ func allowFirstToString(a bool) string {
 	} else {
 		return "0"
 	}
+}
+
+// RecordReconcileDuration records the duration of a reconciliation
+func RecordReconcileDuration(controller, result string, duration time.Duration) {
+	ReconcileDuration.WithLabelValues(controller, result).Observe(duration.Seconds())
+}
+
+// IncReconcileTotal increments the total reconciliation counter
+func IncReconcileTotal(controller, result string) {
+	ReconcileTotal.WithLabelValues(controller, result).Inc()
+}
+
+// IncReconcileErrors increments the reconciliation error counter
+func IncReconcileErrors(controller, errorType string) {
+	ReconcileErrors.WithLabelValues(controller, errorType).Inc()
+}
+
+// IncResourcesCreated increments the resources created counter
+func IncResourcesCreated(resourceType, subjectName string) {
+	ResourcesCreated.WithLabelValues(resourceType, subjectName).Inc()
+}
+
+// IncValidationFailures increments the validation failure counter
+func IncValidationFailures(validationType string) {
+	ValidationFailures.WithLabelValues(validationType).Inc()
 }
