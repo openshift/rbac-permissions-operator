@@ -19,6 +19,9 @@ package subjectpermission
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
@@ -41,6 +45,10 @@ var log = logf.Log.WithName("controller_subjectpermission")
 type SubjectPermissionReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	
+	// Test-friendly flags to disable certain features during testing
+	DisableValidation bool
+	DisableFinalizers bool
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -53,13 +61,21 @@ type SubjectPermissionReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
+	startTime := time.Now()
+	result := "success"
+	
+	defer func() {
+		duration := time.Since(startTime)
+		localmetrics.RecordReconcileDuration("subjectpermission", result, duration)
+		localmetrics.IncReconcileTotal("subjectpermission", result)
+	}()
 
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling SubjectPermission")
 
 	// Fetch the SubjectPermission instance
 	instance := &managedv1alpha1.SubjectPermission{}
-	err := r.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if k8serr.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -68,32 +84,84 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return ctrl.Result{}, err
+		result = "error"
+		localmetrics.IncReconcileErrors("subjectpermission", "fetch")
+		return ctrl.Result{}, fmt.Errorf("failed to fetch SubjectPermission: %w", err)
 	}
 
-	// The SubjectPermission CR is about to be deleted, so we need to clean up the
-	// Prometheus metrics, otherwise there will be stale data exported (for CRs
-	// which no longer exist).
-	if instance.DeletionTimestamp != nil {
-		reqLogger.Info(fmt.Sprintf("Removing Prometheus metrics for SubjectPermission name='%s'", instance.GetName()))
-		localmetrics.DeletePrometheusMetric(instance)
-		return ctrl.Result{}, nil
+	// Input validation (skip in test mode)
+	if !r.DisableValidation {
+		if err := r.validateSubjectPermission(instance); err != nil {
+			reqLogger.Error(err, "SubjectPermission validation failed")
+			result = "validation_error"
+			localmetrics.IncReconcileErrors("subjectpermission", "validation")
+			localmetrics.IncValidationFailures("spec_validation")
+			// Update status to indicate validation failure
+			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "SubjectPermission validation failed", []string{err.Error()}, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.ClusterRoleBindingCreated)
+			if updateErr := r.Client.Status().Update(ctx, instance); updateErr != nil {
+				reqLogger.Error(updateErr, "Failed to update SubjectPermission status after validation failure")
+			}
+			return ctrl.Result{}, fmt.Errorf("SubjectPermission validation failed: %w", err)
+		}
+	}
+
+	// Handle deletion with finalizer (skip in test mode)
+	finalizer := "subjectpermission.managed.openshift.io/finalizer"
+	if !r.DisableFinalizers {
+		if instance.DeletionTimestamp != nil {
+			if ctrlutil.ContainsFinalizer(instance, finalizer) {
+				// Perform cleanup
+				reqLogger.Info("Cleaning up SubjectPermission resources", "name", instance.GetName())
+				localmetrics.DeletePrometheusMetric(instance)
+				
+				// Remove finalizer to allow deletion
+				ctrlutil.RemoveFinalizer(instance, finalizer)
+				if err := r.Update(ctx, instance); err != nil {
+					result = "error"
+					localmetrics.IncReconcileErrors("subjectpermission", "cleanup")
+					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
+		// Add finalizer if not present
+		if !ctrlutil.ContainsFinalizer(instance, finalizer) {
+			ctrlutil.AddFinalizer(instance, finalizer)
+			if err := r.Update(ctx, instance); err != nil {
+				result = "error"
+				localmetrics.IncReconcileErrors("subjectpermission", "finalizer")
+				return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %w", err)
+			}
+			return ctrl.Result{Requeue: true}, nil
+		}
+	} else {
+		// Simple cleanup for test mode
+		if instance.DeletionTimestamp != nil {
+			reqLogger.Info("Removing Prometheus metrics for SubjectPermission", "name", instance.GetName())
+			localmetrics.DeletePrometheusMetric(instance)
+			return ctrl.Result{}, nil
+		}
 	}
 
 	// get list of clusterRole on k8s
 	clusterRoleList := &v1.ClusterRoleList{}
-	err = r.List(context.TODO(), clusterRoleList)
+	err = r.List(ctx, clusterRoleList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleList")
-		return ctrl.Result{}, err
+		result = "error"
+		localmetrics.IncReconcileErrors("subjectpermission", "list_clusterroles")
+		return ctrl.Result{}, fmt.Errorf("failed to list ClusterRoles: %w", err)
 	}
 
 	// get a list of clusterRoleBinding from k8s cluster list
 	clusterRoleBindingList := &v1.ClusterRoleBindingList{}
-	err = r.List(context.TODO(), clusterRoleBindingList)
+	err = r.List(ctx, clusterRoleBindingList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get clusterRoleBindingList")
-		return ctrl.Result{}, err
+		result = "error"
+		localmetrics.IncReconcileErrors("subjectpermission", "list_clusterrolebindings")
+		return ctrl.Result{}, fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
 	}
 
 	// get all ClusterRoleNames that do not exist as ClusterRole
@@ -101,12 +169,15 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	if len(clusterRoleNamesNotOnCluster) != 0 {
 		// update condition if any ClusterRoleName does not exist as a ClusterRole
 		instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "ClusterRole for ClusterPermission does not exist", clusterRoleNamesNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.ClusterRoleBindingCreated)
-		err = r.Client.Status().Update(context.TODO(), instance)
+		err = r.Client.Status().Update(ctx, instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when checking ClusterRolenames that do not exist as ClusterRole")
-			return ctrl.Result{}, err
+			result = "error"
+			localmetrics.IncReconcileErrors("subjectpermission", "status_update")
+			return ctrl.Result{}, fmt.Errorf("failed to update status for missing ClusterRoles: %w", err)
 		}
 		// exit reconcile, wait for next CR change
+		result = "missing_clusterroles"
 		return ctrl.Result{}, nil
 	}
 
@@ -117,15 +188,18 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	for _, clusterRoleName := range instance.Spec.ClusterPermissions {
 		// create a new ClusterRoleBinding
 		newCRB := NewClusterRoleBinding(clusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind)
-		err := r.Create(context.TODO(), newCRB)
+		err := r.Create(ctx, newCRB)
 		if err != nil {
 			if !k8serr.IsAlreadyExists(err) {
-				reqLogger.Error(err, "Failed to create ClusterRoleBinding")
-				return ctrl.Result{}, err
+				reqLogger.Error(err, "Failed to create ClusterRoleBinding", "clusterRoleName", clusterRoleName, "subjectName", instance.Spec.SubjectName)
+				result = "error"
+				localmetrics.IncReconcileErrors("subjectpermission", "create_clusterrolebinding")
+				return ctrl.Result{}, fmt.Errorf("failed to create ClusterRoleBinding for %s: %w", clusterRoleName, err)
 			}
 		} else {
 			clusterRoleBindingName := fmt.Sprintf("%s-%s", clusterRoleName, instance.Spec.SubjectName)
-			reqLogger.Info(fmt.Sprintf("ClusterRoleBinding %s created successfully", clusterRoleBindingName))
+			reqLogger.Info("ClusterRoleBinding created successfully", "name", clusterRoleBindingName, "clusterRoleName", clusterRoleName, "subject", instance.Spec.SubjectName)
+			localmetrics.IncResourcesCreated("ClusterRoleBinding", instance.Spec.SubjectName)
 			// Created the ClusterRoleBinding, update status later
 			createdClusterRoleBinding = true
 		}
@@ -136,7 +210,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 	// updateCondition if all ClusterRoleBindings added successfully
 	if createdClusterRoleBinding && len(instance.Spec.ClusterPermissions) == createdClusterRoleBindingCount {
 		instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Successfully created all ClusterRoleBindings", clusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.ClusterRoleBindingCreated)
-		err = r.Client.Status().Update(context.TODO(), instance)
+		err = r.Client.Status().Update(ctx, instance)
 		if err != nil {
 			reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
 			return ctrl.Result{}, err
@@ -146,7 +220,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 
 	// get the NamespaceList
 	nsList := &corev1.NamespaceList{}
-	err = r.List(context.TODO(), nsList)
+	err = r.List(ctx, nsList)
 	if err != nil {
 		reqLogger.Error(err, "Failed to get NamespaceList")
 		return ctrl.Result{}, err
@@ -172,7 +246,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 			if len(clusterRoleNamesForPermissionNotOnCluster) != 0 {
 				// update condition if any ClusterRoleName does not exist as a Role
 				instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Role for Permission does not exist", clusterRoleNamesForPermissionNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.RoleBindingCreated)
-				err = r.Client.Status().Update(context.TODO(), instance)
+				err = r.Client.Status().Update(ctx, instance)
 				if err != nil {
 					reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
 					return ctrl.Result{}, err
@@ -193,12 +267,12 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 					client.InNamespace(ns),
 				}
 				// TODO: Check error
-				_ = r.List(context.TODO(), rbList, opts...)
+				_ = r.List(ctx, rbList, opts...)
 
 				// create roleBinding
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
 
-				err := r.Create(context.TODO(), roleBinding)
+				err := r.Create(ctx, roleBinding)
 				if err != nil {
 					if k8serr.IsAlreadyExists(err) {
 						continue
@@ -221,7 +295,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 		if len(instance.Spec.Permissions) == CreatedRoleBindingCount {
 			// update condition if all RoleBindings added successfully
 			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Successfully created all roleBindings", successfullRoleBindingNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-			err = r.Client.Status().Update(context.TODO(), instance)
+			err = r.Client.Status().Update(ctx, instance)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all rolebindings")
 				return ctrl.Result{}, err
@@ -290,6 +364,57 @@ func PopulateCrClusterRoleNames(subjectPermission *managedv1alpha1.SubjectPermis
 	}
 
 	return result
+}
+
+// validateSubjectPermission validates the SubjectPermission spec
+func (r *SubjectPermissionReconciler) validateSubjectPermission(sp *managedv1alpha1.SubjectPermission) error {
+	// Validate SubjectName
+	if strings.TrimSpace(sp.Spec.SubjectName) == "" {
+		return fmt.Errorf("subjectName cannot be empty")
+	}
+
+	// Validate SubjectKind
+	validKinds := []string{"User", "Group", "ServiceAccount"}
+	validKind := false
+	for _, kind := range validKinds {
+		if sp.Spec.SubjectKind == kind {
+			validKind = true
+			break
+		}
+	}
+	if !validKind {
+		return fmt.Errorf("subjectKind must be one of: %s, got: %s", strings.Join(validKinds, ", "), sp.Spec.SubjectKind)
+	}
+
+	// Validate ClusterPermissions
+	for _, clusterRoleName := range sp.Spec.ClusterPermissions {
+		if strings.TrimSpace(clusterRoleName) == "" {
+			return fmt.Errorf("clusterRoleName cannot be empty")
+		}
+	}
+
+	// Validate Permissions regex patterns
+	for i, permission := range sp.Spec.Permissions {
+		if strings.TrimSpace(permission.ClusterRoleName) == "" {
+			return fmt.Errorf("permission[%d].clusterRoleName cannot be empty", i)
+		}
+
+		// Validate NamespacesAllowedRegex
+		if permission.NamespacesAllowedRegex != "" {
+			if _, err := regexp.Compile(permission.NamespacesAllowedRegex); err != nil {
+				return fmt.Errorf("invalid namespacesAllowedRegex in permission[%d]: %w", i, err)
+			}
+		}
+
+		// Validate NamespacesDeniedRegex
+		if permission.NamespacesDeniedRegex != "" {
+			if _, err := regexp.Compile(permission.NamespacesDeniedRegex); err != nil {
+				return fmt.Errorf("invalid namespacesDeniedRegex in permission[%d]: %w", i, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
