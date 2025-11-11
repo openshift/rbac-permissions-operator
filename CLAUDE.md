@@ -50,7 +50,11 @@ The project uses OpenShift boilerplate with generated makefiles:
 3. SubjectPermission controller creates RoleBindings in namespaces matching regex filters
 4. Namespace controller ensures new namespaces get appropriate RoleBindings
 5. Both controllers respect allow/deny regex patterns to avoid privileged namespaces
-
+### Common Issues & Troubleshooting
+- **Validation Failures**: Check SubjectPermission CR spec for required fields
+- **Permission Denied**: Verify regex patterns in namespace filters
+- **Reconciliation Stuck**: Check operator logs and Prometheus metrics
+- **Boilerplate Issues**: Use `make boilerplate-update` for generated file conflicts
 ### Namespace Filtering
 - `namespacesAllowedRegex` - Regex pattern for allowed namespaces
 - `namespacesDeniedRegex` - Regex pattern for denied namespaces (takes precedence)
