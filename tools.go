@@ -5,8 +5,8 @@ package tools
 
 import (
 	// Code generators built at runtime.
-	_ "github.com/golang/mock/mockgen"
 	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "go.uber.org/mock/mockgen"
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"

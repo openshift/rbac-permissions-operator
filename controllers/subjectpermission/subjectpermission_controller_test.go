@@ -4,20 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/mock/gomock"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
+	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	"github.com/openshift/rbac-permissions-operator/controllers/subjectpermission"
@@ -786,9 +783,9 @@ var _ = Describe("SubjectPermission Controller", func() {
 				invalidSP.Spec.SubjectKind = "Group" // Make this valid so we get to regex validation
 				invalidSP.Spec.Permissions = []v1alpha1.Permission{
 					{
-						ClusterRoleName:          "test-role",
-						NamespacesAllowedRegex:   "[invalid-regex", // Invalid regex
-						NamespacesDeniedRegex:    "valid-regex",
+						ClusterRoleName:        "test-role",
+						NamespacesAllowedRegex: "[invalid-regex", // Invalid regex
+						NamespacesDeniedRegex:  "valid-regex",
 					},
 				}
 
@@ -923,7 +920,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 			It("Should return error with proper metrics", func() {
 				spWithoutFinalizer := testSubjectPermission
 				spWithoutFinalizer.Spec.SubjectKind = "Group" // Make validation pass
-				spWithoutFinalizer.Finalizers = []string{} // No finalizers
+				spWithoutFinalizer.Finalizers = []string{}    // No finalizers
 
 				updateError := fmt.Errorf("update failed")
 				gomock.InOrder(
@@ -1030,7 +1027,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).Return(alreadyExistsError)
 				// Add expectations for namespace processing that continues after AlreadyExists
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
-				
+
 				_, err := enhancedReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				// Should not return error for AlreadyExists
 				Expect(err).ToNot(HaveOccurred())
