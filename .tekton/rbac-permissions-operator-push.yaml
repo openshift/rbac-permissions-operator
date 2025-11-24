@@ -7,10 +7,8 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: 'false'
     pipelinesascode.tekton.dev/max-keep-runs: '3'
-    pipelinesascode.tekton.dev/on-cel-expression: "event == \"push\"\n&& target_branch\
-      \ == \"master\"\n&& (\"{.,**}/*.go\".pathChanged() ||\n    \"{.,**}/go.*\".pathChanged()\
-      \ ||\n    \"build/Dockerfile\".pathChanged() ||\n    \".tekton/rbac-permissions-operator-push.yaml\"\
-      .pathChanged() )\n"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+      == "master"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rbac-permissions-operator
@@ -36,6 +34,9 @@ spec:
   - name: git-auth
     secret:
       secretName: '{{ git_auth_secret }}'
+  - name: netrc
+    secret:
+      secretName: '{{ git_auth_secret }}'
   pipelineRef:
     resolver: git
     params:
@@ -45,4 +46,25 @@ spec:
       value: master
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
+  taskRunSpecs:
+  - pipelineTaskName: init
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: init
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-init:0.2@sha256:1d8221c84f91b923d89de50bf16481ea729e3b68ea04a9a7cbe8485ddbb27ee6
+      - name: kind
+        value: task
+  - pipelineTaskName: build-container
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: buildah-oci-ta
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.7@sha256:c6b1505c197c2dbe9d5e5b1fc2843e2509e0bb94
+      - name: kind
+        value: task
 status: {}

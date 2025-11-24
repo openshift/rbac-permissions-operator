@@ -8,10 +8,8 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: 'true'
     pipelinesascode.tekton.dev/max-keep-runs: '3'
-    pipelinesascode.tekton.dev/on-cel-expression: "event == \"pull_request\"\n&& target_branch\
-      \ == \"master\"\n&& (\"{.,**}/*.go\".pathChanged() ||\n    \"{.,**}/go.*\".pathChanged()\
-      \ ||\n    \"build/Dockerfile\".pathChanged() ||\n    \".tekton/rbac-permissions-operator-pull-request.yaml\"\
-      .pathChanged() )\n"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
+      == "master"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rbac-permissions-operator
@@ -26,9 +24,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/rbac-permissions-operator-tenant/openshift/rbac-permissions-operator:on-pr-{{revision}}
-  - name: image-expires-after
-    value: 5d
+    value: quay.io/redhat-user-workloads/rbac-permissions-operator-tenant/openshift/rbac-permissions-operator-e2e:{{revision}}
   - name: dockerfile
     value: build/Dockerfile
   - name: path-context
@@ -37,6 +33,9 @@ spec:
     serviceAccountName: build-pipeline-rbac-permissions-operator
   workspaces:
   - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
+  - name: netrc
     secret:
       secretName: '{{ git_auth_secret }}'
   pipelineRef:
@@ -48,4 +47,25 @@ spec:
       value: master
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
+  taskRunSpecs:
+  - pipelineTaskName: init
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: init
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-init:0.2@sha256:1d8221c84f91b923d89de50bf16481ea729e3b68ea04a9a7cbe8485ddbb27ee6
+      - name: kind
+        value: task
+  - pipelineTaskName: build-container
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: buildah-oci-ta
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.7@sha256:c6b1505c197c2dbe9d5e5b1fc2843e2509e0bb94
+      - name: kind
+        value: task
 status: {}
