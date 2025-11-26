@@ -38,7 +38,7 @@ ginkgo -v controllers/namespace
 
 ### Mocking interfaces
 
-This project makes use of [`GoMock`](https://github.com/golang/mock) to mock service interfaces. This comes with the `mockgen` utility which can be used to generate or re-generate mock interfaces that can be used to simulate the behaviour of an external dependency.
+This project makes use of [`GoMock`](https://go.uber.org/mock) to mock service interfaces. This comes with the `mockgen` utility which can be used to generate or re-generate mock interfaces that can be used to simulate the behaviour of an external dependency.
 
 Once installed, an interface can be mocked by running:
 
