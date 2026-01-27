@@ -94,6 +94,94 @@ class TestGitOperations(unittest.TestCase):
         name = migration.get_operator_name()
         self.assertEqual(name, 'test-operator')
 
+    @patch('subprocess.run')
+    def test_get_default_branch_from_remote_head(self, mock_run):
+        """Test detecting default branch from remote HEAD."""
+        mock_run.side_effect = [
+            # First call: git rev-parse --git-dir
+            Mock(returncode=0, stdout='.git\n', stderr=''),
+            # Second call: git symbolic-ref refs/remotes/origin/HEAD
+            Mock(returncode=0, stdout='refs/remotes/origin/main\n', stderr='')
+        ]
+        
+        branch = migration.get_default_branch()
+        self.assertEqual(branch, 'main')
+
+    @patch('subprocess.run')
+    def test_get_default_branch_master_from_remote_head(self, mock_run):
+        """Test detecting master branch from remote HEAD."""
+        mock_run.side_effect = [
+            # First call: git rev-parse --git-dir
+            Mock(returncode=0, stdout='.git\n', stderr=''),
+            # Second call: git symbolic-ref refs/remotes/origin/HEAD
+            Mock(returncode=0, stdout='refs/remotes/origin/master\n', stderr='')
+        ]
+        
+        branch = migration.get_default_branch()
+        self.assertEqual(branch, 'master')
+
+    @patch('subprocess.run')
+    def test_get_default_branch_from_current_branch(self, mock_run):
+        """Test detecting default branch from current branch when remote HEAD fails."""
+        mock_run.side_effect = [
+            # First call: git rev-parse --git-dir
+            Mock(returncode=0, stdout='.git\n', stderr=''),
+            # Second call: git symbolic-ref refs/remotes/origin/HEAD (fails)
+            Mock(returncode=128, stdout='', stderr='fatal: ref refs/remotes/origin/HEAD is not a symbolic ref'),
+            # Third call: git branch --show-current
+            Mock(returncode=0, stdout='main\n', stderr='')
+        ]
+        
+        branch = migration.get_default_branch()
+        self.assertEqual(branch, 'main')
+
+    @patch('subprocess.run')
+    def test_get_default_branch_from_branch_list(self, mock_run):
+        """Test detecting default branch from branch list when other methods fail."""
+        mock_run.side_effect = [
+            # First call: git rev-parse --git-dir
+            Mock(returncode=0, stdout='.git\n', stderr=''),
+            # Second call: git symbolic-ref refs/remotes/origin/HEAD (fails)
+            Mock(returncode=128, stdout='', stderr='fatal: ref refs/remotes/origin/HEAD is not a symbolic ref'),
+            # Third call: git branch --show-current (returns feature branch)
+            Mock(returncode=0, stdout='feature-branch\n', stderr=''),
+            # Fourth call: git branch --list
+            Mock(returncode=0, stdout='  feature-branch\n* main\n  develop\n', stderr='')
+        ]
+        
+        branch = migration.get_default_branch()
+        self.assertEqual(branch, 'main')
+
+    @patch('subprocess.run')
+    def test_get_default_branch_defaults_to_main(self, mock_run):
+        """Test that get_default_branch defaults to 'main' when detection fails."""
+        mock_run.side_effect = [
+            # First call: git rev-parse --git-dir
+            Mock(returncode=0, stdout='.git\n', stderr=''),
+            # Second call: git symbolic-ref refs/remotes/origin/HEAD (fails)
+            Mock(returncode=128, stdout='', stderr='fatal: ref refs/remotes/origin/HEAD is not a symbolic ref'),
+            # Third call: git branch --show-current
+            Mock(returncode=0, stdout='feature-branch\n', stderr=''),
+            # Fourth call: git branch --list (no main or master)
+            Mock(returncode=0, stdout='  feature-branch\n  develop\n', stderr='')
+        ]
+        
+        branch = migration.get_default_branch()
+        self.assertEqual(branch, 'main')
+
+    @patch('subprocess.run')
+    def test_get_default_branch_not_git_repo(self, mock_run):
+        """Test get_default_branch fails when not in a git repository."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=128,
+            cmd=['git', 'rev-parse', '--git-dir'],
+            stderr='fatal: not a git repository'
+        )
+        
+        with self.assertRaises(RuntimeError) as ctx:
+            migration.get_default_branch()
+        self.assertIn('Not in a git repository', str(ctx.exception))
+
 
 class TestManifestAnnotation(unittest.TestCase):
     """Test manifest annotation functions."""
@@ -507,12 +595,20 @@ class TestTemplateGeneration(unittest.TestCase):
         self.assertIn('apiVersion: tekton.dev/v1', push_content)
         self.assertIn('event == "push"', push_content)
         self.assertNotIn('image-expires-after', push_content)
+        # Verify it uses the detected default branch (main in this test)
+        self.assertIn('target_branch\n      == "main"', push_content)
+        # Verify it uses master for boilerplate
+        self.assertIn('value: master', push_content)
         
         # Check PR pipeline content
         pr_content = pr_pipeline.read_text()
         self.assertIn('event == "pull_request"', pr_content)
         self.assertIn('image-expires-after', pr_content)
         self.assertIn('on-pr-', pr_content)
+        # Verify it uses the detected default branch (main in this test)
+        self.assertIn('target_branch\n      == "main"', pr_content)
+        # Verify it uses master for boilerplate
+        self.assertIn('value: master', pr_content)
 
     def test_write_clusterpackage_template(self):
         """Test ClusterPackage template generation."""
