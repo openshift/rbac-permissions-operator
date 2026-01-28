@@ -55,13 +55,13 @@ spec:
       - name: kind
         value: task
   - pipelineTaskName: build-container
-      taskRef:
-        resolver: bundles
-        params:
-        - name: name
-          value: buildah-oci-ta
-        - name: bundle
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: buildah-oci-ta
+      - name: bundle
         value: quay.io/konflux-ci/tekton-catalog/task-buildah-oci-ta:0.7@sha256:c6b1505c197c2dbe9d5e5b1fc2843e2509e0bb94
-        - name: kind
-          value: task
+      - name: kind
+        value: task
 status: {}
