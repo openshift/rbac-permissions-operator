@@ -40,7 +40,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: '{cancel_in_progress}'
     pipelinesascode.tekton.dev/max-keep-runs: '3'
     pipelinesascode.tekton.dev/on-cel-expression: event == "{event}" && target_branch
-      == "main"
+      == "{default_branch}"
   labels:
     appstudio.openshift.io/application: {operator_name}
     appstudio.openshift.io/component: {operator_name}-pko
@@ -73,7 +73,7 @@ spec:
     - name: url
       value: https://github.com/openshift/boilerplate
     - name: revision
-      value: master
+      value: {boilerplate_branch}
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
 status: {{}}
@@ -328,6 +328,80 @@ def get_operator_name() -> str:
         return "unknown-operator"
 
 
+def get_default_branch() -> str:
+    """
+    Detect the default branch name for the current repository.
+    
+    Returns:
+        str: The default branch name ('main' or 'master')
+    
+    Raises:
+        RuntimeError: If not in a git repository or cannot determine default branch
+    """
+    try:
+        # First check if we're in a git repository
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+    except subprocess.CalledProcessError:
+        raise RuntimeError(
+            "Not in a git repository. This script must be run from within a git repository."
+        )
+    
+    try:
+        # Try to get the default branch from the remote
+        result = subprocess.run(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode == 0:
+            # Output format: "refs/remotes/origin/main" or "refs/remotes/origin/master"
+            branch = result.stdout.strip().split("/")[-1]
+            if branch in ("main", "master"):
+                return branch
+        
+        # Fallback: check current branch
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        current_branch = result.stdout.strip()
+        if current_branch in ("main", "master"):
+            return current_branch
+        
+        # Last resort: check if main or master branches exist locally
+        result = subprocess.run(
+            ["git", "branch", "--list"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        branches = [line.strip().lstrip("* ") for line in result.stdout.splitlines()]
+        if "main" in branches:
+            return "main"
+        if "master" in branches:
+            return "master"
+        
+        # Default to 'main' if we can't determine
+        print("Warning: Could not determine default branch, defaulting to 'main'", file=sys.stderr)
+        return "main"
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Error detecting default branch: {e.stderr if e.stderr else str(e)}", file=sys.stderr)
+        print("Defaulting to 'main'", file=sys.stderr)
+        return "main"
+
+
 def get_pko_manifest(operator_name: str) -> dict[str, Any]:
     """Generate the PKO PackageManifest structure."""
     return {
@@ -562,6 +636,8 @@ def write_clusterpackage_template():
 def write_tekton_pipelines():
     operator_name = get_operator_name()
     operator_upstream = get_github_url()
+    default_branch = get_default_branch()
+    
     tekton_folder = Path("./.tekton")
     if not tekton_folder.exists():
         raise RuntimeError(
@@ -569,6 +645,10 @@ def write_tekton_pipelines():
         )
     push_manifest = tekton_folder / (operator_name + "-pko-push.yaml")
     pr_manifest = tekton_folder / (operator_name + "-pko-pull-request.yaml")
+    
+    # Detect boilerplate branch - try to use the same as the current repo, fallback to master
+    # since the boilerplate repo still uses master as default
+    boilerplate_branch = "master"  # boilerplate repo uses master
     
     # Push pipeline - no additional params, standard revision tag
     with open(push_manifest, mode="w") as manifest:
@@ -579,7 +659,9 @@ def write_tekton_pipelines():
                 cancel_in_progress = "false",
                 event = "push",
                 image_tag = "{{revision}}",
-                additional_params = ""
+                additional_params = "",
+                default_branch = default_branch,
+                boilerplate_branch = boilerplate_branch
             )
         )
     
@@ -596,7 +678,9 @@ def write_tekton_pipelines():
                 cancel_in_progress = "true",
                 event = "pull_request",
                 image_tag = "on-pr-{{revision}}",
-                additional_params = pr_additional_params
+                additional_params = pr_additional_params,
+                default_branch = default_branch,
+                boilerplate_branch = boilerplate_branch
             )
         )
 
