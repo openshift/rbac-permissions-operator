@@ -1,0 +1,18 @@
+FROM scratch
+
+# Build arguments for versioning - pass via --build-arg
+ARG RELEASE=v0.0.0
+ARG VERSION=v0.0.0
+
+LABEL com.redhat.component="openshift-rbac-permissions-operator" \
+      io.k8s.description="rbac-permissions-operator Operator for OpenShift Dedicated" \
+      description="rbac-permissions-operator Operator for OpenShift Dedicated" \
+      distribution-scope="public" \
+      name="openshift/rbac-permissions-operator" \
+      url="https://github.com/openshift/rbac-permissions-operator" \
+      vendor="Red Hat, Inc." \
+      release="${RELEASE}" \
+      version="${VERSION}"
+
+# Context is deploy_pko/ directory - copies all PKO manifests
+COPY . /package/

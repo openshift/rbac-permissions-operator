@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbac-permissions-operator
+  namespace: openshift-rbac-permissions
+  annotations:
+    package-operator.run/phase: deploy
+    package-operator.run/collision-protection: IfNoController
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rbac-permissions-operator
+  template:
+    metadata:
+      labels:
+        name: rbac-permissions-operator
+    spec:
+      serviceAccountName: rbac-permissions-operator
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: Exists
+            weight: 1
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/infra
+        operator: Exists
+      containers:
+      - name: rbac-permissions-operator
+        image: '{{ .config.image }}'
+        command:
+        - rbac-permissions-operator
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: rbac-permissions-operator
+        - name: OPERATOR_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace

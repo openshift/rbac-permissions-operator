@@ -1,0 +1,6 @@
+# Ignore non-manifest files
+.git
+.gitignore
+*.md
+*.txt
+.DS_Store
