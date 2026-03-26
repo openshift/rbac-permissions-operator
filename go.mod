@@ -1,6 +1,6 @@
 module github.com/openshift/rbac-permissions-operator
 
-go 1.25.3
+go 1.25.7
 
 require (
 	github.com/onsi/ginkgo v1.16.5
