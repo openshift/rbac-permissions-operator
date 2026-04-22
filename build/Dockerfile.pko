@@ -15,4 +15,6 @@ LABEL com.redhat.component="openshift-rbac-permissions-operator" \
       version="${VERSION}"
 
 # Context is deploy_pko/ directory - copies all PKO manifests
-COPY . /package/
+COPY --chown=1001:0 . /package/
+
+USER 1001
