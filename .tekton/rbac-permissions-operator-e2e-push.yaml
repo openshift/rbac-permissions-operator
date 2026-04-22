@@ -43,6 +43,36 @@ spec:
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
   taskRunSpecs:
+  - pipelineTaskName: clair-scan
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: clair-scan
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-clair-scan:0.3@sha256:cd49cdea7e5403a87c4774bd8ea10bc4e6aeb83841ff490cbe42b782779513a7
+      - name: kind
+        value: task
+  - pipelineTaskName: clamav-scan
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: clamav-scan
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-clamav-scan:0.3@sha256:171eca520b545a0c860c6d59249796ffe5db5be1dab87f3a328fc5ef1fd68af2
+      - name: kind
+        value: task
+  - pipelineTaskName: prefetch-dependencies
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: prefetch-dependencies-oci-ta
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.3@sha256:dca9728e1ba9eb1bf6419bc800f082d13f054a3db8b345af0b188ce3ee6246dd
+      - name: kind
+        value: task
   - pipelineTaskName: rpms-signature-scan
     taskRef:
       resolver: bundles
