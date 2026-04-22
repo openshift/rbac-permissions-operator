@@ -31,6 +31,12 @@ objects:
           api.openshift.com/managed: "true"
       resourceApplyMode: Sync
       resources:
+        - apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: ${NAMESPACE}
+            labels:
+              openshift.io/cluster-monitoring: "true"
         - apiVersion: package-operator.run/v1alpha1
           kind: ClusterPackage
           metadata:
