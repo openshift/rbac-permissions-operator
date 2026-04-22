@@ -47,4 +47,15 @@ spec:
       value: master
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
+  taskRunSpecs:
+  - pipelineTaskName: rpms-signature-scan
+    taskRef:
+      resolver: bundles
+      params:
+      - name: name
+        value: rpms-signature-scan
+      - name: bundle
+        value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:b2224a0442ac705e20a25b8609e1760321d9d86da7901fd0392a90102688e37d
+      - name: kind
+        value: task
 status: {}
