@@ -33,6 +33,7 @@ spec:
           command:
           - rbac-permissions-operator
           imagePullPolicy: Always
+          terminationMessagePolicy: FallbackToLogsOnError
           resources:
             limits:
               cpu: 500m
