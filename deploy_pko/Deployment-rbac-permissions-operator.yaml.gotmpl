@@ -39,6 +39,7 @@ spec:
         command:
         - rbac-permissions-operator
         imagePullPolicy: Always
+        terminationMessagePolicy: FallbackToLogsOnError
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

@@ -75,6 +75,7 @@ spec:
         - name: delete-csv
           image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
           imagePullPolicy: Always
+          terminationMessagePolicy: FallbackToLogsOnError
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
