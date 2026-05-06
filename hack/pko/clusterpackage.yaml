@@ -3,6 +3,8 @@ kind: Template
 parameters:
   - name: PKO_IMAGE
     required: true
+  - name: OPERATOR_IMAGE
+    required: true
   - name: IMAGE_TAG
     required: true
   - name: IMAGE_DIGEST
@@ -44,5 +46,8 @@ objects:
             annotations:
               package-operator.run/collision-protection: IfNoController
           spec:
-            # Pin image by digest for reproducibility
+            # Pin PKO package image by digest for reproducibility
             image: ${PKO_IMAGE}@${IMAGE_DIGEST}
+            config:
+              # Operator image uses same git SHA tag (built from same commit)
+              image: ${OPERATOR_IMAGE}:${IMAGE_TAG}
