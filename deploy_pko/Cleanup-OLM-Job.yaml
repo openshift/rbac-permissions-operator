@@ -92,11 +92,12 @@ spec:
               #!/bin/sh
               set -euxo pipefail
               # Delete Subscription first to prevent OLM from recreating CSV
-              oc -n openshift-rbac-permissions delete subscription \
+              # Use full resource type to avoid conflict with ACM subscriptions.apps.open-cluster-management.io
+              oc -n openshift-rbac-permissions delete subscriptions.operators.coreos.com \
                 -l "operators.coreos.com/rbac-permissions-operator.openshift-rbac-permissions" \
                 --ignore-not-found
               # Delete ClusterServiceVersion
-              oc -n openshift-rbac-permissions delete csv \
+              oc -n openshift-rbac-permissions delete clusterserviceversions.operators.coreos.com \
                 -l "operators.coreos.com/rbac-permissions-operator.openshift-rbac-permissions" \
                 --ignore-not-found
           resources:
