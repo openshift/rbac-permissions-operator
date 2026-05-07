@@ -261,7 +261,7 @@ func (r *SubjectPermissionReconciler) validateClusterRolesExist(ctx context.Cont
 func (r *SubjectPermissionReconciler) reconcileClusterPermissions(ctx context.Context, instance *managedv1alpha1.SubjectPermission, reqLogger logr.Logger, result *string) (bool, error) {
 	var createdClusterRoleBindingCount int
 	var createdClusterRoleBinding bool
-	var clusterRoleNames []string
+	clusterRoleNames := make([]string, 0, len(instance.Spec.ClusterPermissions))
 
 	for _, clusterRoleName := range instance.Spec.ClusterPermissions {
 		newCRB := NewClusterRoleBinding(clusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectKind)
