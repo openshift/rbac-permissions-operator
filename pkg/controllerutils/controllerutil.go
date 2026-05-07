@@ -37,7 +37,7 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 	}
 
 	// place all keys from map into slice
-	result := []string{}
+	result := make([]string, 0, len(encountered))
 	for key := range encountered {
 		result = append(result, key)
 	}
@@ -136,7 +136,7 @@ func UpdateCondition(conditions []managedv1alpha1.Condition, message string, clu
 
 	// place all keys from map into result slice
 	// this prevents the duplication of clusterRoleNames
-	result := []string{}
+	result := make([]string, 0, len(encountered))
 	for key := range encountered {
 		result = append(result, key)
 	}
