@@ -40,8 +40,8 @@ var (
 
 	// ReconcileDuration tracks reconciliation duration
 	ReconcileDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "rbac_permissions_operator_reconcile_duration_seconds",
-		Help: "Time spent reconciling SubjectPermissions",
+		Name:    "rbac_permissions_operator_reconcile_duration_seconds",
+		Help:    "Time spent reconciling SubjectPermissions",
 		Buckets: prometheus.DefBuckets,
 	}, []string{
 		"controller",

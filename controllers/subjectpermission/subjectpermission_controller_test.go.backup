@@ -32,6 +32,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 		testSubjectName             string
 		testSubjectKind             string
 		testClusterRoleList         rbacv1.ClusterRoleList
+		testClusterRoleBindingList  rbacv1.ClusterRoleBindingList
 		testNamespaceList           *corev1.NamespaceList
 		mockStatusWriter            *clientmocks.MockStatusWriter
 	)
@@ -52,6 +53,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 		testSubjectName = "testGroupName"
 		testSubjectKind = "Group"
 		testClusterRoleList = testconst.TestClusterRoleList
+		testClusterRoleBindingList = testconst.TestClusterRoleBindingList
 	})
 
 	Context("Reconciling SubjectPermission", func() {
@@ -214,6 +216,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
@@ -283,6 +286,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
 						client.InNamespace("default"),
@@ -328,13 +332,27 @@ var _ = Describe("SubjectPermission Controller", func() {
 			})
 		})
 
-		// Test removed: ClusterRoleBindingList is no longer fetched in the refactored code
+		When("Not able to List the ClusterRoleBindingList", func() {
+			BeforeEach(func() {
+				testClusterRoleBindingList = rbacv1.ClusterRoleBindingList{}
+			})
+			It("Should fail when not able to List the ClusterRoleBindingList", func() {
+				gomock.InOrder(
+					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).SetArg(2, testSubjectPermission),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList).Return(fmt.Errorf("fake error")),
+				)
+				_, err := subjectPermissionReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
+				Expect(err).To(HaveOccurred())
+			})
+		})
 
 		When("Not able to update condition for ClusterRoleName not existing as a ClusterRole", func() {
 			It("Should report failure", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).SetArg(1, testSubjectPermission).Return(fmt.Errorf("fake error")),
 				)
@@ -364,6 +382,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testconst.TestClusterRoleBinding).Return(fmt.Errorf("fake error")),
 				)
 				_, err := subjectPermissionReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
@@ -392,6 +411,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(2).SetArg(1, testconst.TestClusterRoleBinding),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).SetArg(1, testSubjectPermission).Return(fmt.Errorf("fake error")),
@@ -421,13 +441,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 						SubjectName:        "exampleSubjectName",
 						SubjectKind:        "exampleSubjectKind",
 						ClusterPermissions: []string{},
-						Permissions: []v1alpha1.Permission{
-							{
-								ClusterRoleName:        "exampleClusterRoleName",
-								NamespacesAllowedRegex: testconst.TestDefaultAllowedList,
-								NamespacesDeniedRegex:  testconst.TestEmptyDeniedList,
-							},
-						},
+						Permissions:        []v1alpha1.Permission{},
 					},
 					Status: v1alpha1.SubjectPermissionStatus{
 						Conditions: []v1alpha1.Condition{},
@@ -447,6 +461,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList).Return(fmt.Errorf("fake error")),
 				)
 				_, err := subjectPermissionReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
@@ -505,6 +520,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).SetArg(1, testSubjectPermission).Return(fmt.Errorf("fake error")),
@@ -565,6 +581,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
 						client.InNamespace("default"),
@@ -628,6 +645,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
 						client.InNamespace("default"),
@@ -928,7 +946,23 @@ var _ = Describe("SubjectPermission Controller", func() {
 			})
 		})
 
-		// Test removed: ClusterRoleBindingList is no longer fetched in the refactored code
+		When("ClusterRoleBinding list fails", func() {
+			It("Should return error with proper metrics", func() {
+				validSP := testSubjectPermission
+				validSP.Spec.SubjectKind = "Group"
+				validSP.Finalizers = []string{"subjectpermission.managed.openshift.io/finalizer"}
+
+				listError := fmt.Errorf("list failed")
+				gomock.InOrder(
+					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, validSP),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).Return(listError),
+				)
+				_, err := enhancedReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to list ClusterRoleBindings"))
+			})
+		})
 
 		When("Status update fails after missing ClusterRoles", func() {
 			It("Should return error with proper metrics", func() {
@@ -941,6 +975,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, spWithMissingRoles),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).Return(statusError),
 				)
@@ -963,6 +998,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 				mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList)
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList)
 				mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).Return(createError)
 				_, err := enhancedReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).To(HaveOccurred())
@@ -983,6 +1019,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 				mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList)
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList)
 				mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).Return(alreadyExistsError)
 				// Add expectations for namespace processing that continues after AlreadyExists
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
@@ -1048,6 +1085,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 				mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList)
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList)
 				// Fail on namespace list (after ClusterRoleBinding processing)
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).Return(listError)
 
@@ -1067,6 +1105,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 				updateError := fmt.Errorf("status update failed")
 				mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, validSP)
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList)
+				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleBindingList)
 				mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).Return(nil)
 				mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 				mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).Return(updateError)
