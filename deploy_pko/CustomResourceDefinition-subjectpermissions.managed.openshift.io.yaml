@@ -22,35 +22,22 @@ spec:
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
-              of an object.
-
-              Servers should convert recognized schemas to the latest internal value,
-              and
-
-              may reject unrecognized values.
-
+              of an object. Servers should convert recognized schemas to the latest internal value,
+              and may reject unrecognized values.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
             description: 'Kind is a string value representing the REST resource this
-              object represents.
-
-              Servers may infer this from the endpoint the client submits requests
-              to.
-
-              Cannot be updated.
-
+              object represents. Servers may infer this from the endpoint the client submits requests
+              to. Cannot be updated. 
               In CamelCase.
-
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
           spec:
             description: 'NOTE: json tags are required.  Any new fields you add must
-              have json tags for the fields to be serialized.
-
-              SubjectPermissionSpec defines the desired state of SubjectPermission'
+              have json tags for the fields to be serialized. SubjectPermissionSpec defines the desired state of SubjectPermission'
             properties:
               clusterPermissions:
                 description: List of permissions applied at Cluster scope
@@ -60,9 +47,7 @@ spec:
               permissions:
                 description: List of permissions applied at Namespace scope
                 items:
-                  description: 'Permission defines a Role that is bound to the Subject
-
-                    Allowed in specific Namespaces'
+                  description: 'Permission defines a Role that is bound to the Subject Allowed in specific Namespaces'
                   properties:
                     clusterRoleName:
                       description: ClusterRoleName to bind to the Subject as a RoleBindings
@@ -80,9 +65,7 @@ spec:
                 type: array
               subjectKind:
                 description: 'Important: Run "make" to regenerate code after modifying
-                  this file
-
-                  Kind of the Subject that is being granted permissions by the operator'
+                  this file Kind of the Subject that is being granted permissions by the operator'
                 type: string
               subjectName:
                 description: Name of the Subject granted permissions by the operator
@@ -100,7 +83,6 @@ spec:
               conditions:
                 description: 'Important: Run "make" to regenerate code after modifying
                   this file
-
                   List of conditions for the CR'
                 items:
                   description: Condition defines a single condition of running the
@@ -124,12 +106,9 @@ spec:
                       description: State that this condition represents
                       type: string
                     status:
-                      description: status of the condition, one of True, False, Unknown
-                      type: string
-                      enum:
-                        - "True"
-                        - "False"
-                        - "Unknown"
+                      description: Flag to indicate if condition status is currently
+                        active
+                      type: boolean
                     type:
                       description: type of condition in CamelCase
                       type: string
