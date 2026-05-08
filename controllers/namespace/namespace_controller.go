@@ -120,8 +120,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 					reqLogger.Error(err, "Failed to create RoleBinding", "name", roleBinding.Name, "namespace", instance.Name)
 					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding %s in namespace %s: %w", roleBinding.Name, instance.Name, err)
 				}
-				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
-				reqLogger.Info("RoleBinding created successfully", "name", roleBindingName, "namespace", instance.Name, "subject", subjectPermission.Spec.SubjectName)
+				reqLogger.Info("RoleBinding created successfully", "name", roleBinding.Name, "namespace", instance.Name, "subject", subjectPermission.Spec.SubjectName)
 			}
 		}
 		subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)

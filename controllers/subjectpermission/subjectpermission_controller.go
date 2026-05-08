@@ -317,33 +317,31 @@ func (r *SubjectPermissionReconciler) reconcileNamespacePermissions(ctx context.
 		}
 	}
 
+	// Validate all cluster roles exist before creating any RoleBindings
+	clusterRoleNamesForPermissionNotOnCluster := controllerutil.PopulateCrPermissionClusterRoleNames(instance, clusterRoleList)
+	if len(clusterRoleNamesForPermissionNotOnCluster) != 0 {
+		instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Role for Permission does not exist", clusterRoleNamesForPermissionNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.RoleBindingCreated)
+		err = r.Client.Status().Update(ctx, instance)
+		if err != nil {
+			reqLogger.Error(err, "Failed to update condition: cluster roles for namespace permissions do not exist")
+			return true, err
+		}
+		return true, nil
+	}
+
 	var createdRoleBindingCount int
 	var successfulRoleBindingNames []string
 
 	for _, permission := range instance.Spec.Permissions {
-		clusterRoleNamesForPermissionNotOnCluster := controllerutil.PopulateCrPermissionClusterRoleNames(instance, clusterRoleList)
-		if len(clusterRoleNamesForPermissionNotOnCluster) != 0 {
-			instance.Status.Conditions = controllerutil.UpdateCondition(instance.Status.Conditions, "Role for Permission does not exist", clusterRoleNamesForPermissionNotOnCluster, true, managedv1alpha1.SubjectPermissionStateFailed, managedv1alpha1.RoleBindingCreated)
-			err = r.Client.Status().Update(ctx, instance)
-			if err != nil {
-				reqLogger.Error(err, "Failed to update condition in subjectpermission controller when successfully created all cluster role bindings")
-				return true, err
-			}
-			return true, nil
-		}
-
 		safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, &newNsList)
 		var namespaceCount int
 
 		for _, ns := range safeList {
-			rbList := &v1.RoleBindingList{}
-			opts := []client.ListOption{client.InNamespace(ns)}
-			_ = r.List(ctx, rbList, opts...)
-
 			roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
 			err := r.Create(ctx, roleBinding)
 			if err != nil {
 				if k8serr.IsAlreadyExists(err) {
+					namespaceCount++
 					continue
 				}
 				return true, err

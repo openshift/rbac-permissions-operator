@@ -284,9 +284,6 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace("default"),
-					}),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).SetArg(1, *testconst.TestRoleBinding),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
@@ -566,9 +563,6 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace("default"),
-					}),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).SetArg(1, *testconst.TestRoleBinding).Return(fmt.Errorf("fake error")),
 				)
 				_, err := subjectPermissionReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
@@ -629,9 +623,6 @@ var _ = Describe("SubjectPermission Controller", func() {
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, testSubjectPermission),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testClusterRoleList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace("default"),
-					}),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).SetArg(1, *testconst.TestRoleBinding),
 					mockClient.EXPECT().Status().Return(mockStatusWriter),
 					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).SetArg(1, testSubjectPermission).Return(fmt.Errorf("fake error")),
