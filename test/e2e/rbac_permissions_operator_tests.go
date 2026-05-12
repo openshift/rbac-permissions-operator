@@ -29,7 +29,6 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		namespace             = config.OperatorNamespace
 		deploymentName        = config.OperatorName
 		configMapLockfileName = deploymentName + "-lock"
-		clusterRolePrefix     = deploymentName
 	)
 	ginkgo.BeforeAll(func() {
 		log.SetLogger(ginkgo.GinkgoLogr)
@@ -49,17 +48,13 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		err = client.Get(ctx, configMapLockfileName, namespace, &corev1.ConfigMap{})
 		Expect(err).ShouldNot(HaveOccurred(), "configmap lockfile %s not found", configMapLockfileName)
 
-		ginkgo.By("checking the clusterroles exists")
-		var clusterRoles rbacv1.ClusterRoleList
-		err = client.List(ctx, &clusterRoles)
-		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterroles")
-		Expect(&clusterRoles).Should(ContainItemWithOLMOwnerWithPrefix(clusterRolePrefix), "unable to find clusterrole with olm owner with prefix %s", clusterRolePrefix)
+		ginkgo.By("checking the clusterrole exists")
+		err = client.Get(ctx, deploymentName+"-cluster-admin", "", &rbacv1.ClusterRole{})
+		Expect(err).ShouldNot(HaveOccurred(), "clusterrole %s-cluster-admin not found", deploymentName)
 
-		ginkgo.By("cluster role bindings exist")
-		var clusterRoleBindings rbacv1.ClusterRoleBindingList
-		err = client.List(ctx, &clusterRoleBindings)
-		Expect(err).ShouldNot(HaveOccurred(), "unable to list clusterrolebindings")
-		Expect(&clusterRoleBindings).Should(ContainItemWithOLMOwnerWithPrefix(clusterRolePrefix), "unable to find clusterrolebinding with olm owner with prefix %s", clusterRolePrefix)
+		ginkgo.By("checking the clusterrolebinding exists")
+		err = client.Get(ctx, deploymentName, "", &rbacv1.ClusterRoleBinding{})
+		Expect(err).ShouldNot(HaveOccurred(), "clusterrolebinding %s not found", deploymentName)
 
 		ginkgo.By("checking the deployment is available")
 		EventuallyDeployment(ctx, client, deploymentName, namespace).Should(BeAvailable())
