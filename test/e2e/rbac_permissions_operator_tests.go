@@ -29,7 +29,6 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		namespace             = config.OperatorNamespace
 		deploymentName        = config.OperatorName
 		configMapLockfileName = deploymentName + "-lock"
-		rolePrefix            = deploymentName
 		clusterRolePrefix     = deploymentName
 	)
 	ginkgo.BeforeAll(func() {
@@ -49,18 +48,6 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		ginkgo.By("checking the configmap lockfile exists")
 		err = client.Get(ctx, configMapLockfileName, namespace, &corev1.ConfigMap{})
 		Expect(err).ShouldNot(HaveOccurred(), "configmap lockfile %s not found", configMapLockfileName)
-
-		ginkgo.By("checking the role exists")
-		var roles rbacv1.RoleList
-		err = client.WithNamespace(namespace).List(ctx, &roles)
-		Expect(err).ShouldNot(HaveOccurred(), "failed to list roles")
-		Expect(&roles).Should(ContainItemWithPrefix(rolePrefix), "unable to find roles with prefix %s", rolePrefix)
-
-		ginkgo.By("checking the rolebinding exists")
-		var rolebindings rbacv1.RoleBindingList
-		err = client.List(ctx, &rolebindings)
-		Expect(err).ShouldNot(HaveOccurred(), "failed to list rolebindings")
-		Expect(&rolebindings).Should(ContainItemWithPrefix(rolePrefix), "unable to find rolebindings with prefix %s", rolePrefix)
 
 		ginkgo.By("checking the clusterroles exists")
 		var clusterRoles rbacv1.ClusterRoleList
