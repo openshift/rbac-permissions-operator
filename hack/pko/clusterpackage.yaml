@@ -24,9 +24,7 @@ objects:
         managed.openshift.io/gitHash: ${IMAGE_TAG}
         managed.openshift.io/gitRepoName: ${REPO_NAME}
         managed.openshift.io/osd: "true"
-      # NOTE: This manifest deploys to stage. For production, update the name
-      # and clusterDeploymentSelector labels accordingly.
-      name: rbac-permissions-operator-stage
+      name: rbac-permissions-operator-pko
     spec:
       clusterDeploymentSelector:
         matchLabels:
