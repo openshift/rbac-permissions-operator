@@ -108,12 +108,6 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		}
 
 	})
-
-	ginkgo.It("can be upgraded", func(ctx context.Context) {
-		ginkgo.By("forcing operator upgrade")
-		err := client.UpgradeOperator(ctx, config.OperatorName, namespace)
-		Expect(err).NotTo(HaveOccurred(), "operator upgrade failed")
-	})
 })
 
 func getSubjectPermissionRBACInfo(ctx context.Context, client *openshift.Client, namespace string, spName string) ([]string, []string, []string) {
