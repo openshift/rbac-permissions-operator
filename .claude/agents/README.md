@@ -1,6 +1,6 @@
 # Claude Agents
 
-Specialized agents for this operator development workflow.
+Specialized agents for operator development workflows.
 
 ## Available Agents
 
@@ -96,7 +96,7 @@ Use a specific agent when the task is clear:
 ```text
 "Run lint-agent to check formatting"
 "Use security-agent to scan for secrets"
-"Invoke test-agent on controllers/subjectpermission"
+"Invoke test-agent on controllers/namespace"
 ```
 
 ### Multi-Agent Workflow

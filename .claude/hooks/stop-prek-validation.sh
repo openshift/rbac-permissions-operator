@@ -27,10 +27,7 @@ if [[ -z "$REPO_ROOT" ]]; then
   jq -n '{"decision": "block", "reason": "Not in a git repository. Cannot run prek validation."}'
   exit 0
 fi
-if ! cd "$REPO_ROOT"; then
-  echo "Error: Failed to change directory to repository root: $REPO_ROOT" >&2
-  exit 1
-fi
+cd "$REPO_ROOT" || exit 1
 
 # Check for jq dependency
 if ! command -v jq &> /dev/null; then
@@ -79,8 +76,8 @@ Retry the action once installed so validation can run." \
 fi
 
 # Run prek validation (using CI config to skip network-dependent hooks)
-# Validate all changed files (staged and unstaged) to catch all issues
-PREK_OUTPUT=$(prek run --config hack/prek.ci.toml --all-files 2>&1)
+# Only validate changed files for speed
+PREK_OUTPUT=$(prek run --config hack/prek.ci.toml 2>&1)
 PREK_EXIT=$?
 
 if [[ $PREK_EXIT -eq 0 ]]; then

@@ -62,7 +62,7 @@ grep -E '\[.*\]\(\./' *.md  # Relative links to check
 
 ### Consistency Checks
 - All `make` targets in docs exist in `Makefile`
-- Pre-commit hooks listed match `.pre-commit-config.yaml`
+- Pre-commit hooks listed match `prek.toml` and `hack/prek.ci.toml`
 - Dependencies in docs match `go.mod`
 - Commands use correct flags
 
@@ -83,9 +83,10 @@ When `Makefile` changes, sync:
 - `README.md` if new primary targets added
 
 ### Pre-commit Hooks
-When `.pre-commit-config.yaml` changes, sync:
+When `prek.toml` or `hack/prek.ci.toml` changes, sync:
 - `CONTRIBUTING.md` validation section
 - `CLAUDE.md` validation strategy
+- `.claude/hooks/README.md` hook configuration
 
 ### Dependencies
 When `go.mod` changes (major versions), sync:
@@ -100,6 +101,7 @@ When `go.mod` changes (major versions), sync:
 - Include expected output for non-obvious commands
 - Use `# Comments` to explain complex commands
 - Prefer real examples over placeholders
+- Capitalize "Markdown" as a proper noun
 
 ### Code Block Format
 ```bash
@@ -131,7 +133,7 @@ make <target>
 - Quick start is up to date
 
 ### CONTRIBUTING.md
-- Pre-commit setup matches `.pre-commit-config.yaml`
+- Pre-commit setup matches `prek.toml` and `hack/prek.ci.toml`
 - Required checks match CI pipeline
 - Examples use current commands
 - Security guidelines current
@@ -176,7 +178,7 @@ Escalate to human when:
 find . -name "*.md" -not -path "./vendor/*" -not -path "./.git/*"
 
 # Verify make targets exist
-grep -h '^\s*make ' *.md docs/*.md 2>/dev/null | sed -E 's/.*make ([A-Za-z0-9._-]+).*/\1/' | sort -u
+grep '```bash' *.md | grep 'make ' | sed 's/.*make \([a-z-]*\).*/\1/' | sort -u
 
 # Check for dead links (manual review)
 grep -r '\[.*\](' *.md docs/*.md

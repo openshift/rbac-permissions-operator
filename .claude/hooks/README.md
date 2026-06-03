@@ -15,8 +15,9 @@ This repository uses **prek** (git hook manager) for quality checks and validati
                │
                ▼
 ┌─────────────────────────────────────┐
-│   Stop Hook (every turn)            │
-│   - Runs prek validation            │
+│   Stop Hook (conditional)           │
+│   - Default: runs only with changes │
+│   - Strict: runs every turn         │
 │   - Blocks if issues found          │
 │   - Claude fixes automatically      │
 └──────────────┬──────────────────────┘
@@ -69,7 +70,7 @@ This repository uses **prek** (git hook manager) for quality checks and validati
 - Slower but catches issues immediately
 
 **Common behavior**:
-- Runs `prek run --config hack/prek.ci.toml --all-files` (validates all changed files, both staged and unstaged)
+- Runs `prek run --config hack/prek.ci.toml` on changed files
 - Uses CI-compatible config (skips network-dependent hooks like rh-pre-commit, gitleaks)
 - Blocks Claude from stopping if issues found
 - Feeds errors back to Claude for automatic fixes
@@ -138,7 +139,7 @@ Used for local development with internal network access.
 
 **Usage**:
 ```bash
-prek run --all-files
+prek run  # Uses prek.toml by default
 ```
 
 ### 2. **hack/prek.ci.toml** (CI-compatible)
@@ -179,13 +180,14 @@ This sets up pre-commit hooks that run validation automatically.
 
 ### Automatic Validation
 Prek runs automatically:
-- **On every turn**: Stop hook runs `prek run --config hack/prek.ci.toml --all-files`
+- **Stop hook (default mode)**: Runs `prek run --config hack/prek.ci.toml` only when changes are present (staged, unstaged, or untracked files)
+- **Stop hook (strict mode)**: Set `CLAUDE_LINT_ON_STOP=true` to run on every turn regardless of changes
 - **On commit**: Pre-commit hook runs relevant checks
 
 ### Manual Validation
 ```bash
 # Run all checks
-prek run --all-files
+prek run --config hack/prek.ci.toml
 
 # Run specific check
 prek run gitleaks
@@ -254,15 +256,18 @@ prek run rbac-wildcard-check
 
 **Action**: BLOCK commit
 
-### Generated File Protection
+### File Edit Protection
 **Implementation**: pre-edit.sh (standalone)
 
 **Detects**:
-- `zz_generated.*.go`
-- Generated mocks
-- CRD manifests
+- Generated files (`zz_generated.*.go`)
+- Generated mocks (`**/generated/mock_*.go`)
+- CRD manifests (`deploy/crds/*.yaml`)
+- Vendored code (`vendor/`)
+- Boilerplate files (managed upstream)
+- High-risk files (RBAC, auth, NetworkPolicy, `.tekton/*.yaml`, Dockerfiles)
 
-**Action**: BLOCK edit (suggest regeneration)
+**Action**: BLOCK edit on generated/vendored files, WARN on high-risk files
 
 ## Hook Performance
 
@@ -320,7 +325,7 @@ SKIP=hook-id git commit
    - Open an issue documenting the problem
    - Request reviewer approval before merge
 3. **Re-run full validation:**
-   - `prek run --all-files` locally
+   - `prek run --config hack/prek.ci.toml` locally
    - Ensure all required CI checks pass
    - Get explicit code review approval
 

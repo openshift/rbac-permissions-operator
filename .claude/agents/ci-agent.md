@@ -23,8 +23,6 @@ CI/CD validation and workflow integrity for this operator.
 **Tekton Pipelines** (`.tekton/`):
 - `rbac-permissions-operator-pull-request.yaml`: PR validation
 - `rbac-permissions-operator-push.yaml`: Main branch builds
-- `rbac-permissions-operator-e2e-pull-request.yaml`: E2E tests on PR
-- `rbac-permissions-operator-e2e-push.yaml`: E2E tests on merge
 - `rbac-permissions-operator-pko-pull-request.yaml`: PKO validation
 - `rbac-permissions-operator-pko-push.yaml`: PKO deployment
 
@@ -174,7 +172,7 @@ boilerplate/_lib/container-make
 
 ## Integration with Boilerplate
 
-this operator uses Red Hat boilerplate:
+This operator uses Red Hat boilerplate:
 - **Pipeline source**: `https://github.com/openshift/boilerplate`
 - **Pipeline path**: `pipelines/docker-build-oci-ta/pipeline.yaml`
 - **Updates**: `make boilerplate-update`
