@@ -16,9 +16,6 @@ def analyze_build_log(log_file):
     if not os.path.exists(log_file):
         return None
 
-    with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
-        content = f.read()
-
     analysis = {
         'errors': [],
         'failures': [],
@@ -26,35 +23,42 @@ def analyze_build_log(log_file):
         'patterns': {}
     }
 
-    # Common failure patterns
+    # Common failure patterns (compiled for efficiency)
     patterns = {
-        'compilation_error': r'(?:compilation failed|build failed|cannot find package)',
-        'test_failure': r'(?:FAIL:|Test failed:|tests failed)',
-        'lint_error': r'(?:golangci-lint|gofmt|go vet) .* failed',
-        'timeout': r'(?:timeout|timed out|deadline exceeded)',
-        'oom': r'(?:out of memory|OOMKilled|killed by signal)',
-        'image_pull': r'(?:Failed to pull image|ErrImagePull|ImagePullBackOff)',
-        'permission_denied': r'(?:permission denied|forbidden|unauthorized)',
+        'compilation_error': re.compile(r'(?:compilation failed|build failed|cannot find package)', re.IGNORECASE),
+        'test_failure': re.compile(r'(?:FAIL:|Test failed:|tests failed)', re.IGNORECASE),
+        'lint_error': re.compile(r'(?:golangci-lint|gofmt|go vet) .* failed', re.IGNORECASE),
+        'timeout': re.compile(r'(?:timeout|timed out|deadline exceeded)', re.IGNORECASE),
+        'oom': re.compile(r'(?:out of memory|OOMKilled|killed by signal)', re.IGNORECASE),
+        'image_pull': re.compile(r'(?:Failed to pull image|ErrImagePull|ImagePullBackOff)', re.IGNORECASE),
+        'permission_denied': re.compile(r'(?:permission denied|forbidden|unauthorized)', re.IGNORECASE),
     }
 
-    for pattern_name, regex in patterns.items():
-        matches = re.findall(regex, content, re.IGNORECASE)
-        if matches:
-            analysis['patterns'][pattern_name] = len(matches)
+    # Initialize pattern counters
+    for pattern_name in patterns:
+        analysis['patterns'][pattern_name] = 0
 
-    # Extract error lines
-    for line in content.splitlines():
-        if re.search(r'\bERROR\b', line, re.IGNORECASE):
-            analysis['errors'].append(line.strip())
-        elif re.search(r'\bFAIL(ED)?\b', line):
-            analysis['failures'].append(line.strip())
-        elif re.search(r'\bWARNING\b', line, re.IGNORECASE):
-            analysis['warnings'].append(line.strip())
+    # Stream and process line-by-line to avoid memory pressure
+    with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
+        for line in f:
+            line_stripped = line.strip()
 
-    # Limit to most relevant
-    analysis['errors'] = analysis['errors'][:10]
-    analysis['failures'] = analysis['failures'][:10]
-    analysis['warnings'] = analysis['warnings'][:5]
+            # Count pattern matches
+            for pattern_name, pattern_regex in patterns.items():
+                if pattern_regex.search(line):
+                    analysis['patterns'][pattern_name] += 1
+
+            # Extract error lines (limit collection to avoid memory issues)
+            # Use independent if statements to allow capturing multiple categories per line
+            if len(analysis['errors']) < 10 and re.search(r'\bERROR\b', line, re.IGNORECASE):
+                analysis['errors'].append(line_stripped)
+            if len(analysis['failures']) < 10 and re.search(r'\bFAIL(ED)?\b', line, re.IGNORECASE):
+                analysis['failures'].append(line_stripped)
+            if len(analysis['warnings']) < 5 and re.search(r'\bWARNING\b', line, re.IGNORECASE):
+                analysis['warnings'].append(line_stripped)
+
+    # Remove patterns with zero occurrences
+    analysis['patterns'] = {k: v for k, v in analysis['patterns'].items() if v > 0}
 
     return analysis
 
@@ -177,6 +181,12 @@ def main():
 
     # Generate analysis
     report = generate_analysis_report(args.artifacts_dir)
+
+    # Fail fast if build log is missing (required artifact)
+    if report.get('build_log') is None:
+        print(f"Error: Missing required build-log.txt in {args.artifacts_dir}", file=sys.stderr)
+        print("The artifacts directory must contain build-log.txt for analysis.", file=sys.stderr)
+        return 1
 
     # Format output
     if args.format == 'json':

@@ -126,14 +126,13 @@ def main():
     # Track failures
     had_errors = False
 
-    # Fetch prowjob.json
+    # Fetch prowjob.json (optional - don't fail if missing)
     print("Fetching prowjob.json...")
     prowjob = fetch_prowjob_json(parsed['gcs_base_path'], output_dir)
-    if prowjob:
+    if prowjob is not None:
         print("✓ prowjob.json downloaded")
     else:
-        print("✗ Could not fetch prowjob.json")
-        had_errors = True
+        print("⚠ Could not fetch prowjob.json (optional artifact)")
 
     # Fetch build-log.txt
     print("Fetching build-log.txt...")
