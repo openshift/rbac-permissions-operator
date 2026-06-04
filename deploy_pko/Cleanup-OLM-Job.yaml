@@ -23,6 +23,8 @@ rules:
     resources:
       - clusterserviceversions
       - subscriptions
+      - catalogsources
+      - operatorgroups
     verbs:
       - list
       - get
@@ -100,6 +102,10 @@ spec:
               oc -n openshift-rbac-permissions delete clusterserviceversions.operators.coreos.com \
                 -l "operators.coreos.com/rbac-permissions-operator.openshift-rbac-permissions" \
                 --ignore-not-found
+              # Delete operatorgroups
+              oc -n openshift-rbac-permissions delete operatorgroups.operators.coreos.com rbac-permissions-operator --ignore-not-found=true
+              # Delete catalogsources
+              oc -n openshift-rbac-permissions delete catalogsources.operators.coreos.com rbac-permissions-operator-registry --ignore-not-found=true
           resources:
             requests:
               cpu: 100m
