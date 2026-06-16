@@ -1,0 +1,11 @@
+# Konflux e2e image — not boilerplate-managed.
+# go.mod is 1.26; boilerplate test/e2e/Dockerfile still pins rhel_9_1.25 until
+# openshift/boilerplate#757 merges and make boilerplate-update regenerates it.
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.26 as builder
+WORKDIR /go/src/github.com/openshift/rbac-permissions-operator/
+COPY . .
+RUN  CGO_ENABLED=0 GOFLAGS="-mod=mod" go test ./test/e2e -v -c --tags=osde2e -o /e2e.test
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+COPY --from=builder ./e2e.test e2e.test
+ENTRYPOINT [ "/e2e.test" ]
