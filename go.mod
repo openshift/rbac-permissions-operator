@@ -4,8 +4,8 @@ go 1.26.0
 
 require (
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.30.0
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/ginkgo/v2 v2.31.0
+	github.com/onsi/gomega v1.42.0
 	github.com/openshift/operator-custom-metrics v0.5.1
 	github.com/openshift/osde2e-common v0.0.0-20260514215146-b07512784467
 	github.com/operator-framework/operator-lib v0.19.0
@@ -99,4 +99,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260616201213-3fe0a993efb6
+replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260617125622-05673ba6e650
