@@ -1,6 +1,7 @@
-# Konflux e2e image — not boilerplate-managed.
-# go.mod is 1.26; boilerplate test/e2e/Dockerfile still pins rhel_9_1.25 until
-# openshift/boilerplate#757 merges and make boilerplate-update regenerates it.
+# Temporary Konflux-only e2e image until openshift/boilerplate#757 regenerates
+# test/e2e/Dockerfile with rhel_9_1.26. Do not edit test/e2e/Dockerfile by hand.
+# Only .tekton/rbac-permissions-operator-e2e-*.yaml reference this file; prow/devshift
+# e2e still uses the boilerplate-managed test/e2e/Dockerfile.
 FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.26 as builder
 WORKDIR /go/src/github.com/openshift/rbac-permissions-operator/
 COPY . .
