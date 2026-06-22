@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.31.0
 	github.com/onsi/gomega v1.42.0
 	github.com/openshift/operator-custom-metrics v0.5.1
-	github.com/openshift/osde2e-common v0.0.0-20260514215146-b07512784467
+	github.com/openshift/osde2e-common v0.0.0-20260618165637-751e0d23bb9d
 	github.com/operator-framework/operator-lib v0.19.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.91.0
 	github.com/prometheus/client_golang v1.23.2
@@ -20,7 +20,7 @@ require (
 	k8s.io/client-go v0.36.2
 	k8s.io/code-generator v0.36.2
 	k8s.io/gengo v0.0.0-20260408192533-25e2208e0dc3
-	k8s.io/kube-openapi v0.0.0-20260603220949-865597e52e25
+	k8s.io/kube-openapi v0.0.0-20260618221249-bc653b64f974
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
@@ -65,7 +65,7 @@ require (
 	github.com/openshift/api v3.9.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.68.1 // indirect
+	github.com/prometheus/common v0.69.0 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -91,7 +91,7 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/streaming v0.36.2 // indirect
-	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2 // indirect
+	k8s.io/utils v0.0.0-20260617174310-a95e086a2553 // indirect
 	sigs.k8s.io/e2e-framework v0.7.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
@@ -99,4 +99,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260618181827-d22a47a846dc
+replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260619095050-5346161d1bf2
