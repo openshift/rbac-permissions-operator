@@ -9,4 +9,5 @@ RUN  CGO_ENABLED=0 GOFLAGS="-mod=mod" go test ./test/e2e -v -c --tags=osde2e -o 
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 COPY --from=builder ./e2e.test e2e.test
+USER 1001
 ENTRYPOINT [ "/e2e.test" ]
