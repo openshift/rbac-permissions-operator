@@ -9,7 +9,7 @@ require (
 	github.com/openshift/operator-custom-metrics v0.5.1
 	github.com/openshift/osde2e-common v0.0.0-20260618165637-751e0d23bb9d
 	github.com/operator-framework/operator-lib v0.19.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.91.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.92.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 	github.com/sykesm/zap-logfmt v0.0.4
@@ -99,4 +99,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260619095050-5346161d1bf2
+replace github.com/openshift/api => github.com/openshift/api v0.0.0-20260624175654-50c3975e874f
