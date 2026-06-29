@@ -24,7 +24,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/rbac-permissions-operator-tenant/openshift/rbac-permissions-operator-e2e:on-pr-{{revision}}
   - name: dockerfile
-    value: test/e2e/Dockerfile
+    value: test/e2e/Dockerfile.konflux
   - name: path-context
     value: .
   - name: image-expires-after

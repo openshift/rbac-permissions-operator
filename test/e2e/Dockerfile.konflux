@@ -1,0 +1,13 @@
+# Temporary Konflux-only e2e image until openshift/boilerplate#757 regenerates
+# test/e2e/Dockerfile with rhel_9_1.26. Do not edit test/e2e/Dockerfile by hand.
+# Only .tekton/rbac-permissions-operator-e2e-*.yaml reference this file; prow/devshift
+# e2e still uses the boilerplate-managed test/e2e/Dockerfile.
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.26 as builder
+WORKDIR /go/src/github.com/openshift/rbac-permissions-operator/
+COPY . .
+RUN  CGO_ENABLED=0 GOFLAGS="-mod=mod" go test ./test/e2e -v -c --tags=osde2e -o /e2e.test
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+COPY --from=builder ./e2e.test e2e.test
+USER 1001
+ENTRYPOINT [ "/e2e.test" ]
