@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 
 ## Summary
-The RBAC-Permissions-Operator was created for the Openshift Dedicated platform to manage various permissions (via k8s RBAC policies) to
+The RBAC-Permissions-Operator was created for the OpenShift Dedicated platform to manage various permissions (via k8s RBAC policies) to
 all the projects/namespaces within an OpenShift Dedicated cluster. The permissions must allow for cluster and namespace scope access
 and the ability to safe list and/or blocklist namespaces.
 
@@ -19,8 +19,6 @@ form of NamespacesAllowedRegex and NamespacesDeniedRegex. These will help us det
 the RoleBinding assignment.
 
 ![Components](docs/images/rbac_permissions_components.png)
-
-## Metrics
 
 ## Testing, Locally (CRC)
 To test a new version of the operator locally using CRC you need to:
@@ -40,7 +38,7 @@ create `RoleBindings` in that namespace to the corresponding subject.
 ## SubjectPermission Controller
 
 The subjectpermission-controller is triggered by a new SubjectPermission CR or a change to an existing SubjectPermission CR. It is
-responsible for the creation of `ClusterRoleBinding` and `Rolebinding`. It looks at the `subjectName` and the `clusterRoleName` passed
+responsible for the creation of `ClusterRoleBinding` and `RoleBinding`. It looks at the `subjectName` and the `clusterRoleName` passed
 in by the SubjectPermission CR. If corresponding `ClusterRoleBinding` and/or `RoleBinding` do not exist then create them.
 
 # Custom Resources
