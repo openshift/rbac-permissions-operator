@@ -111,7 +111,7 @@ if [[ -f ${REPO_ROOT}/.gitignore ]]; then
   ${SED?} -i "/Dockerfile.olm-registry/d" ${REPO_ROOT}/.gitignore
 fi
 
-OPERATOR_NAME=$(sed -n 's/.*OperatorName .*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/config/config.go")
+OPERATOR_NAME=$(${SED?} -n 's/.*OperatorName .*\=.*"\([^"]*\)".*/\1/p' "${REPO_ROOT}/config/config.go")
 
 if [[ ! -f ${REPO_ROOT}/config/metadata/additional-labels.txt ]]; then
   mkdir -p ${REPO_ROOT}/config/metadata
@@ -160,6 +160,13 @@ ${SED?} "s/__NAMESPACE__/$IMAGE_NAMESPACE/; s/__NAME__/$IMAGE_NAME/; s/__TAG__/$
 # Add pre-commit hooks configuration (SREP-4485)
 echo "Copying pre-commit-config.yaml to .pre-commit-config.yaml"
 cp ${HERE}/pre-commit-config.yaml $REPO_ROOT/.pre-commit-config.yaml
+
+# Add agentic SDLC conformance check pipeline (ROSA-730)
+if [ -d "${REPO_ROOT}/.tekton" ]; then
+  AGENTIC_CHECK="${REPO_ROOT}/.tekton/${OPERATOR_NAME}-agentic-sdlc-check-pull-request.yaml"
+  echo "Generating agentic SDLC conformance check pipeline: $(basename ${AGENTIC_CHECK})"
+  ${SED?} "s/__OPERATOR_NAME__/${OPERATOR_NAME}/g" ${HERE}/agentic-sdlc-check-pull-request.yaml.tmpl > "${AGENTIC_CHECK}"
+fi
 
 # Check for pipeline files in .tekton directory and centralize them
 TEKTON_DIR="${REPO_ROOT}/.tekton"
