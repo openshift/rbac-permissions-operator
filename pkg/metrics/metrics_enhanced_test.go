@@ -63,12 +63,12 @@ func TestMetricsRegistration(t *testing.T) {
 	// Verify that all metrics in the list are valid Prometheus collectors
 	for i, metric := range MetricsList {
 		assert.NotNil(t, metric, "Metric at index %d should not be nil", i)
-		
+
 		// Try to collect from the metric to ensure it's valid
 		ch := make(chan prometheus.Metric, 10)
 		metric.Collect(ch)
 		close(ch)
-		
+
 		// We don't need to check specific metrics, just that they're valid collectors
 	}
 }
