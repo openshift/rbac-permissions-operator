@@ -45,7 +45,7 @@ var log = logf.Log.WithName("controller_subjectpermission")
 type SubjectPermissionReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	
+
 	// Test-friendly flags to disable certain features during testing
 	DisableValidation bool
 	DisableFinalizers bool
@@ -63,7 +63,7 @@ type SubjectPermissionReconciler struct {
 func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	startTime := time.Now()
 	result := "success"
-	
+
 	defer func() {
 		duration := time.Since(startTime)
 		localmetrics.RecordReconcileDuration("subjectpermission", result, duration)
@@ -113,7 +113,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 				// Perform cleanup
 				reqLogger.Info("Cleaning up SubjectPermission resources", "name", instance.GetName())
 				localmetrics.DeletePrometheusMetric(instance)
-				
+
 				// Remove finalizer to allow deletion
 				ctrlutil.RemoveFinalizer(instance, finalizer)
 				if err := r.Update(ctx, instance); err != nil {
@@ -133,7 +133,7 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 				localmetrics.IncReconcileErrors("subjectpermission", "finalizer")
 				return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %w", err)
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Second}, nil
 		}
 	} else {
 		// Simple cleanup for test mode

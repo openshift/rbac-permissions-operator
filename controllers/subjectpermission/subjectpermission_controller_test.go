@@ -3,6 +3,7 @@ package subjectpermission_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1067,7 +1068,7 @@ var _ = Describe("SubjectPermission Controller", func() {
 
 				result, err := enhancedReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(result.Requeue).To(BeTrue())
+				Expect(result.RequeueAfter).To(Equal(time.Second))
 			})
 		})
 
