@@ -33,7 +33,7 @@ spec:
             - name: name
               value: git-clone
             - name: bundle
-              value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2.4@sha256:bb787553da840e226ea72147a7ccbe8553f887efef2ca24664c9ba2052018adf
+              value: quay.io/konflux-ci/tekton-catalog/task-git-clone:0.2.5@sha256:4a6567757596e348fe2505f7e2cc0286ad98a32d9b510d1a44d0bf6ed6df5469
             - name: kind
               value: task
           resolver: bundles
