@@ -8,7 +8,7 @@ include boilerplate/generated-includes.mk
 
 .PHONY: go-check
 go-check:
-	# Match boilerplate ensure.sh GOLANGCI_LINT_VERSION (2.11.0); prow image golangci is Go 1.26-built.
+	# Override boilerplate GOLANGCI_LINT_VERSION (2.7.2) with 2.11.0 for Go 1.26 compatibility.
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.0
 	${GOENV} PATH="$$(go env GOPATH)/bin:$$PATH" GOLANGCI_LINT_CACHE=${GOLANGCI_LINT_CACHE} golangci-lint run -c ${CONVENTION_DIR}/golangci.yml $(if $(LINT_NEW_FROM_REV),--new-from-rev=$(LINT_NEW_FROM_REV)) ./...
 
