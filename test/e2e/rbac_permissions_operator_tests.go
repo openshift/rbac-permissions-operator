@@ -85,7 +85,9 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		} else {
 			// namespace exists, clean it up
 			ginkgo.By("Cleaning up leftover test namespace " + testNamespaceName)
-			Expect(client.Delete(ctx, existing)).Should(Succeed(), "Failed to delete leftover test namespace")
+			if err := client.Delete(ctx, existing); err != nil && !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to delete leftover test namespace: %v", err))
+			}
 			Eventually(func(g Gomega) {
 				err := client.Get(ctx, testNamespaceName, "", &corev1.Namespace{})
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), fmt.Sprintf("unexpected error: %v", err))
@@ -217,17 +219,25 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 		testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
-		err := client.Create(ctx, testNamespace)
-		Expect(err).ShouldNot(HaveOccurred(), "Unable to create test namespace")
-		clusterRoles, clusterRoleBindings, roleBindings := getSubjectPermissionRBACInfo(ctx, client, namespace, spName)
 
+		// Register cleanup before Create so it runs even if creation fails
 		ginkgo.DeferCleanup(func(ctx context.Context) {
 			ginkgo.By("Deleting test namespace " + testNamespaceName)
-			Expect(client.Delete(ctx, testNamespace)).Should(Succeed(), "Failed to test delete namespace")
+			if err := client.Delete(ctx, testNamespace); err != nil && !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to delete test namespace: %v", err))
+			}
 		})
 
+		// Create test namespace, retrying in case the stale namespace is still terminating
+		Eventually(ctx, func(ctx context.Context) error {
+			testNamespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
+			return client.Create(ctx, testNamespace)
+		}).WithTimeout(60*time.Second).WithPolling(2*time.Second).WithContext(ctx).Should(Succeed(), "Unable to create test namespace")
+
+		clusterRoles, clusterRoleBindings, roleBindings := getSubjectPermissionRBACInfo(ctx, client, namespace, spName)
+
 		var allClusterRoles rbacv1.ClusterRoleList
-		err = client.List(ctx, &allClusterRoles)
+		err := client.List(ctx, &allClusterRoles)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterroles")
 		ginkgo.By("Checking cluterroles in " + testNamespaceName)
 		for _, clusterRoleName := range clusterRoles {
