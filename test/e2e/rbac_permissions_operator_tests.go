@@ -6,6 +6,7 @@ package osde2etests
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -68,13 +69,19 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		ginkgo.By("Working in test namespace " + testNamespaceName)
 		// Clean up any leftover namespace from a previous run
 		existing := &corev1.Namespace{}
-		if err := client.Get(ctx, testNamespaceName, "", existing); err == nil {
+		if err := client.Get(ctx, testNamespaceName, "", existing); err != nil {
+			if !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to check for existing test namespace: %v", err))
+			}
+			// namespace doesn't exist, nothing to clean up
+		} else {
+			// namespace exists, clean it up
 			ginkgo.By("Cleaning up leftover test namespace " + testNamespaceName)
-			_ = client.Delete(ctx, existing)
-			Eventually(func() bool {
+			Expect(client.Delete(ctx, existing)).Should(Succeed(), "Failed to delete leftover test namespace")
+			Eventually(func(g Gomega) {
 				err := client.Get(ctx, testNamespaceName, "", &corev1.Namespace{})
-				return apierrors.IsNotFound(err)
-			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(BeTrue(), "Timed out waiting for stale namespace deletion")
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), fmt.Sprintf("unexpected error: %v", err))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
 		}
 
 		testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
