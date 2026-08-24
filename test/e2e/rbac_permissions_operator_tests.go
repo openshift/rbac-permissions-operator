@@ -11,6 +11,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/osde2e-common/pkg/clients/openshift"
@@ -64,6 +66,17 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		spName := "dedicated-admins"
 		testNamespaceName := "test-subjectpermissions"
 		ginkgo.By("Working in test namespace " + testNamespaceName)
+		// Clean up any leftover namespace from a previous run
+		existing := &corev1.Namespace{}
+		if err := client.Get(ctx, testNamespaceName, "", existing); err == nil {
+			ginkgo.By("Cleaning up leftover test namespace " + testNamespaceName)
+			_ = client.Delete(ctx, existing)
+			Eventually(func() bool {
+				err := client.Get(ctx, testNamespaceName, "", &corev1.Namespace{})
+				return apierrors.IsNotFound(err)
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(BeTrue(), "Timed out waiting for stale namespace deletion")
+		}
+
 		testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
 		err := client.Create(ctx, testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "Unable to create test namespace")
