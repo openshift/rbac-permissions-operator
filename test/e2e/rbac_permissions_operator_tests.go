@@ -6,10 +6,13 @@ package osde2etests
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -64,6 +67,74 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		spName := "dedicated-admins"
 		testNamespaceName := "test-subjectpermissions"
 		ginkgo.By("Working in test namespace " + testNamespaceName)
+		// Clean up any leftover namespace from a previous run
+		existing := &corev1.Namespace{}
+		if err := client.Get(ctx, testNamespaceName, "", existing); err != nil {
+			if !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to check for existing test namespace: %v", err))
+			}
+			// namespace doesn't exist, nothing to clean up
+		} else {
+			// namespace exists, clean it up
+			ginkgo.By("Cleaning up leftover test namespace " + testNamespaceName)
+			Expect(client.Delete(ctx, existing)).Should(Succeed(), "Failed to delete leftover test namespace")
+			Eventually(func(g Gomega) {
+				err := client.Get(ctx, testNamespaceName, "", &corev1.Namespace{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), fmt.Sprintf("unexpected error: %v", err))
+			}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+		}
+
+		// Create SubjectPermission test fixture
+		ginkgo.By("Creating SubjectPermission test fixture " + spName)
+		existingSP := &managedv1alpha1.SubjectPermission{}
+		if err := client.WithNamespace(namespace).Get(ctx, spName, namespace, existingSP); err != nil {
+			if !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to check for existing SubjectPermission: %v", err))
+			}
+		} else {
+			ginkgo.By("Cleaning up leftover SubjectPermission " + spName)
+			Expect(client.Delete(ctx, existingSP)).Should(Succeed(), "Failed to delete leftover SubjectPermission")
+			Eventually(func(g Gomega) {
+				err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &managedv1alpha1.SubjectPermission{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), fmt.Sprintf("unexpected error: %v", err))
+			}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+		}
+
+		sp := &managedv1alpha1.SubjectPermission{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      spName,
+				Namespace: namespace,
+			},
+			Spec: managedv1alpha1.SubjectPermissionSpec{
+				SubjectKind: "Group",
+				SubjectName: "dedicated-admins",
+				ClusterPermissions: []string{
+					"view",
+				},
+				Permissions: []managedv1alpha1.Permission{
+					{
+						ClusterRoleName:        "edit",
+						NamespacesAllowedRegex: "^test-subjectpermissions$",
+					},
+				},
+			},
+		}
+		Expect(client.Create(ctx, sp)).Should(Succeed(), "Failed to create SubjectPermission test fixture")
+
+		ginkgo.DeferCleanup(func(ctx context.Context) {
+			ginkgo.By("Deleting SubjectPermission test fixture " + spName)
+			Expect(client.Delete(ctx, sp)).Should(Succeed(), "Failed to delete SubjectPermission test fixture")
+		})
+
+		// Wait for the operator to reconcile the SubjectPermission
+		ginkgo.By("Waiting for SubjectPermission to be reconciled")
+		Eventually(func(g Gomega) {
+			var reconciled managedv1alpha1.SubjectPermission
+			err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &reconciled)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(reconciled.Status.Conditions).NotTo(BeEmpty(), "SubjectPermission has no status conditions yet")
+		}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+
 		testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
 		err := client.Create(ctx, testNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "Unable to create test namespace")
