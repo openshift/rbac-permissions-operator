@@ -126,14 +126,17 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			Expect(client.Delete(ctx, sp)).Should(Succeed(), "Failed to delete SubjectPermission test fixture")
 		})
 
-		// Wait for the operator to reconcile the SubjectPermission
+		// Wait for the operator to reconcile the SubjectPermission.
+		// After a delete+recreate cycle the operator's informer cache may take
+		// time to sync the new object, especially on freshly installed PKO
+		// ClusterPackage instances where the controller is still starting up.
 		ginkgo.By("Waiting for SubjectPermission to be reconciled")
 		Eventually(func(g Gomega) {
 			var reconciled managedv1alpha1.SubjectPermission
 			err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &reconciled)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(reconciled.Status.Conditions).NotTo(BeEmpty(), "SubjectPermission has no status conditions yet")
-		}).WithTimeout(2 * time.Minute).WithPolling(5 * time.Second).Should(Succeed())
+		}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 		testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespaceName}}
 		err := client.Create(ctx, testNamespace)
