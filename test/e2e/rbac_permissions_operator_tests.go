@@ -119,6 +119,13 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 				},
 			},
 		}
+		ginkgo.By("Verifying operator deployment is ready and stable")
+		EventuallyDeployment(ctx, client, deploymentName, namespace).Should(BeAvailable())
+		// Allow controller-runtime informer to complete initial list/watch sync.
+		// The CI image deployment may have experienced ImagePullBackOff, leaving
+		// the operator pod only seconds old at this point.
+		time.Sleep(15 * time.Second)
+
 		Expect(client.Create(ctx, sp)).Should(Succeed(), "Failed to create SubjectPermission test fixture")
 
 		ginkgo.DeferCleanup(func(ctx context.Context) {
@@ -135,6 +142,29 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			var reconciled managedv1alpha1.SubjectPermission
 			err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &reconciled)
 			g.Expect(err).ShouldNot(HaveOccurred())
+			if len(reconciled.Status.Conditions) == 0 {
+				// Diagnostic: log operator pod status to aid debugging timeouts.
+				var pods corev1.PodList
+				if listErr := client.WithNamespace(namespace).List(ctx, &pods); listErr == nil {
+					for i := range pods.Items {
+						pod := &pods.Items[i]
+						if !strings.HasPrefix(pod.Name, deploymentName) {
+							continue
+						}
+						ready := false
+						var restarts int32
+						for _, cs := range pod.Status.ContainerStatuses {
+							if cs.Ready {
+								ready = true
+							}
+							restarts += cs.RestartCount
+						}
+						age := time.Since(pod.CreationTimestamp.Time).Truncate(time.Second)
+						fmt.Fprintf(ginkgo.GinkgoWriter, "  pod %s: phase=%s ready=%t restarts=%d age=%s\n",
+							pod.Name, pod.Status.Phase, ready, restarts, age)
+					}
+				}
+			}
 			g.Expect(reconciled.Status.Conditions).NotTo(BeEmpty(), "SubjectPermission has no status conditions yet")
 		}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
