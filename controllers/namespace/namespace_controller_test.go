@@ -11,6 +11,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
@@ -61,7 +62,7 @@ var _ = Describe("Namespace Controller", func() {
 	Context("Reconciling Namespace", func() {
 
 		When("Namespace is not in the safe list", func() {
-			It("Updates the status condition", func() {
+			It("Does not update SubjectPermission status", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, *testNamespace),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
@@ -69,17 +70,7 @@ var _ = Describe("Namespace Controller", func() {
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
 						client.InNamespace(testNamespace.Name),
 					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
-					mockClient.EXPECT().Status().Return(mockStatusWriter),
-					mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1).DoAndReturn(
-						func(ctx context.Context, sp *v1alpha1.SubjectPermission, uo ...client.UpdateOption) error {
-							Expect(sp.Status.Conditions[1].Message).To(Equal("Successfully created all roleBindings"))
-							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("exampleClusterRoleName")))
-							Expect(sp.Status.Conditions[1].ClusterRoleNames).To(ContainElement(ContainSubstring("testClusterRoleName")))
-							Expect(sp.Status.Conditions[1].Status).To(Equal(true))
-							Expect(sp.Status.Conditions[1].State).To(Equal(v1alpha1.SubjectPermissionStateCreated))
-							Expect(sp.Status.Conditions[1].Type).To(Equal(v1alpha1.RoleBindingCreated))
-							return nil
-						}),
+					// No Status().Update() expected — no RoleBindings were created
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred())
@@ -163,6 +154,75 @@ var _ = Describe("Namespace Controller", func() {
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		When("All RoleBindings already exist in namespace", func() {
+			BeforeEach(func() {
+				testNamespaceList = &corev1.NamespaceList{
+					Items: []corev1.Namespace{
+						{
+							ObjectMeta: testNamespace.ObjectMeta,
+						},
+					},
+				}
+				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
+					Items: []v1alpha1.SubjectPermission{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "testSubjectPermission",
+								Namespace: "rbac-permissions-operator",
+							},
+							Spec: v1alpha1.SubjectPermissionSpec{
+								SubjectName:        "exampleSubjectName",
+								SubjectKind:        "exampleSubjectKind",
+								ClusterPermissions: []string{"exampleClusterRoleName"},
+								Permissions: []v1alpha1.Permission{
+									{
+										ClusterRoleName:        "testClusterRoleName",
+										NamespacesAllowedRegex: "test",
+										NamespacesDeniedRegex:  "",
+									},
+								},
+							},
+							Status: v1alpha1.SubjectPermissionStatus{
+								Conditions: []v1alpha1.Condition{
+									{
+										LastTransitionTime: metav1.Now(),
+										ClusterRoleNames:   []string{"testClusterRoleName"},
+										Message:            "Successfully created all roleBindings",
+										Status:             true,
+										State:              v1alpha1.SubjectPermissionStateCreated,
+									},
+								},
+							},
+						},
+					},
+				}
+				// RoleBindingList already contains the expected binding
+				testRoleBindingList = &rbacv1.RoleBindingList{
+					Items: []rbacv1.RoleBinding{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "testClusterRoleName-exampleSubjectName",
+								Namespace: testNamespace.Name,
+							},
+						},
+					},
+				}
+			})
+			It("Does not update SubjectPermission status", func() {
+				gomock.InOrder(
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
+					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
+						client.InNamespace(testNamespace.Name),
+					}).Times(1).SetArg(1, *testRoleBindingList),
+					// No Create() or Status().Update() expected — all bindings already exist
+				)
+				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
+				Expect(err).ToNot(HaveOccurred(), "namespace reconciliation failed when all RoleBindings already existed")
 			})
 		})
 
@@ -402,6 +462,21 @@ var _ = Describe("Namespace Controller", func() {
 			_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to list SubjectPermissions"))
+		})
+	})
+
+	Context("Testing CreateOnlyPredicate", func() {
+		It("Accepts create events", func() {
+			Expect(namespace.CreateOnlyPredicate.Create(event.CreateEvent{})).To(BeTrue())
+		})
+		It("Rejects update events", func() {
+			Expect(namespace.CreateOnlyPredicate.Update(event.UpdateEvent{})).To(BeFalse())
+		})
+		It("Rejects delete events", func() {
+			Expect(namespace.CreateOnlyPredicate.Delete(event.DeleteEvent{})).To(BeFalse())
+		})
+		It("Rejects generic events", func() {
+			Expect(namespace.CreateOnlyPredicate.Generic(event.GenericEvent{})).To(BeFalse())
 		})
 	})
 

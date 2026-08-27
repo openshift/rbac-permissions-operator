@@ -26,8 +26,11 @@ import (
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 )
@@ -98,6 +101,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 	for _, subjectPermission := range subjectPermissionList.Items {
 		subPerm := subjectPermission
 		var successfulClusterRoleNames []string
+		bindingCreated := false
 		for _, permission := range subPerm.Spec.Permissions {
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 
@@ -115,20 +119,25 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 				err := r.Create(ctx, roleBinding)
 				if err != nil {
 					if k8serr.IsAlreadyExists(err) {
+						bindingCreated = true
 						continue
 					}
 					reqLogger.Error(err, "Failed to create RoleBinding", "name", roleBinding.Name, "namespace", instance.Name)
 					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding %s in namespace %s: %w", roleBinding.Name, instance.Name, err)
 				}
-				roleBindingName := fmt.Sprintf("%s-%s", permission.ClusterRoleName, subjectPermission.Spec.SubjectName)
-				reqLogger.Info("RoleBinding created successfully", "name", roleBindingName, "namespace", instance.Name, "subject", subjectPermission.Spec.SubjectName)
+				bindingCreated = true
+				reqLogger.Info("RoleBinding created successfully", "clusterRole", permission.ClusterRoleName, "namespace", instance.Name)
 			}
 		}
-		subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
-		err = r.Client.Status().Update(ctx, &subPerm)
-		if err != nil {
-			reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
-			return ctrl.Result{}, fmt.Errorf("failed to update SubjectPermission status after creating RoleBindings: %w", err)
+		// Only update SubjectPermission status when a RoleBinding was actually created
+		// to avoid triggering unnecessary reconciliation of the SubjectPermission controller
+		if bindingCreated {
+			subPerm.Status.Conditions = controllerutil.UpdateCondition(subPerm.Status.Conditions, "Successfully created all roleBindings", successfulClusterRoleNames, true, managedv1alpha1.SubjectPermissionStateCreated, managedv1alpha1.RoleBindingCreated)
+			err = r.Client.Status().Update(ctx, &subPerm)
+			if err != nil {
+				reqLogger.Error(err, "Failed to update condition in namespace controller when successfully created all cluster role bindings")
+				return ctrl.Result{}, fmt.Errorf("failed to update SubjectPermission status after creating RoleBindings: %w", err)
+			}
 		}
 	}
 
@@ -159,9 +168,20 @@ func RolebindingInNamespace(rolebinding *v1.RoleBinding, roleBindingList *v1.Rol
 	return false
 }
 
+// CreateOnlyPredicate filters namespace events to only accept create events.
+// The namespace controller's purpose is to create RoleBindings for newly
+// created namespaces. Update and delete events are irrelevant and would
+// cause unnecessary reconciliation storms.
+var CreateOnlyPredicate = predicate.Funcs{
+	CreateFunc:  func(e event.CreateEvent) bool { return true },
+	UpdateFunc:  func(e event.UpdateEvent) bool { return false },
+	DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+	GenericFunc: func(e event.GenericEvent) bool { return false },
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
-	return ctrl.NewControllerManagedBy(mgr).For(&corev1.Namespace{}).Complete(r)
-
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&corev1.Namespace{}, builder.WithPredicates(CreateOnlyPredicate)).
+		Complete(r)
 }

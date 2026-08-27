@@ -100,6 +100,27 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 		}
 
+		// Clean up stale RBAC resources from previous test runs that may
+		// interfere with reconciliation expectations.
+		ginkgo.By("Cleaning up any stale CRB and RoleBinding from previous runs")
+		staleCRB := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "view-dedicated-admins"}}
+		if err := client.Delete(ctx, staleCRB); err != nil && !apierrors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to delete stale ClusterRoleBinding: %v", err))
+		}
+		Eventually(func(g Gomega) {
+			err := client.Get(ctx, "view-dedicated-admins", "", &rbacv1.ClusterRoleBinding{})
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "stale ClusterRoleBinding still exists")
+		}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
+		staleRB := &rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "edit-dedicated-admins", Namespace: testNamespaceName}}
+		if err := client.Delete(ctx, staleRB); err != nil && !apierrors.IsNotFound(err) {
+			ginkgo.Fail(fmt.Sprintf("Failed to delete stale RoleBinding: %v", err))
+		}
+		Eventually(func(g Gomega) {
+			err := client.Get(ctx, "edit-dedicated-admins", testNamespaceName, &rbacv1.RoleBinding{})
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "stale RoleBinding still exists")
+		}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
+
 		sp := &managedv1alpha1.SubjectPermission{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      spName,
@@ -131,6 +152,14 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		ginkgo.DeferCleanup(func(ctx context.Context) {
 			ginkgo.By("Deleting SubjectPermission test fixture " + spName)
 			Expect(client.Delete(ctx, sp)).Should(Succeed(), "Failed to delete SubjectPermission test fixture")
+			ginkgo.By("Deleting ClusterRoleBinding view-dedicated-admins")
+			if err := client.Delete(ctx, &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "view-dedicated-admins"}}); err != nil && !apierrors.IsNotFound(err) {
+				ginkgo.Fail(fmt.Sprintf("Failed to delete ClusterRoleBinding in cleanup: %v", err))
+			}
+			Eventually(func(g Gomega) {
+				err := client.Get(ctx, "view-dedicated-admins", "", &rbacv1.ClusterRoleBinding{})
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ClusterRoleBinding still exists after cleanup")
+			}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 		})
 
 		// Wait for the operator to reconcile the SubjectPermission.
