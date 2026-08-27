@@ -11,6 +11,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/openshift/rbac-permissions-operator/api/v1alpha1"
@@ -221,7 +222,7 @@ var _ = Describe("Namespace Controller", func() {
 					// No Create() or Status().Update() expected — all bindings already exist
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).ToNot(HaveOccurred(), "namespace reconciliation failed when all RoleBindings already existed")
 			})
 		})
 
@@ -461,6 +462,21 @@ var _ = Describe("Namespace Controller", func() {
 			_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to list SubjectPermissions"))
+		})
+	})
+
+	Context("Testing CreateOnlyPredicate", func() {
+		It("Accepts create events", func() {
+			Expect(namespace.CreateOnlyPredicate.Create(event.CreateEvent{})).To(BeTrue())
+		})
+		It("Rejects update events", func() {
+			Expect(namespace.CreateOnlyPredicate.Update(event.UpdateEvent{})).To(BeFalse())
+		})
+		It("Rejects delete events", func() {
+			Expect(namespace.CreateOnlyPredicate.Delete(event.DeleteEvent{})).To(BeFalse())
+		})
+		It("Rejects generic events", func() {
+			Expect(namespace.CreateOnlyPredicate.Generic(event.GenericEvent{})).To(BeFalse())
 		})
 	})
 
