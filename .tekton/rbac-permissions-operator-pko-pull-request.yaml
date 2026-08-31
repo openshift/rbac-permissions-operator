@@ -30,11 +30,10 @@ spec:
   # skip-preflight-cert-check: Required for internal registry with self-signed certs in CI
   - name: skip-preflight-cert-check
     value: "true"
-  # skip-checks: PKO image is FROM scratch (YAML only). Boilerplate's docker-build-oci-ta
-  # pipeline swapped clair-scan for roxctl-scan (ACS) on 2026-08-28; ACS fails on
-  # scratch package images (no OS / no RPM content). Skipping image scans here is the
-  # same class of workaround as skip-preflight-cert-check.
-  - name: skip-checks
+  # skip-roxctl-scan: ACS fails on FROM-scratch PKO images (YAML only, no OS).
+  # Do not use skip-checks here — that also drops clamav/SAST/RPM scans and
+  # Enterprise Contract fails. Param is in openshift/boilerplate#866.
+  - name: skip-roxctl-scan
     value: "true"
   - name: image-expires-after
     value: 3d
@@ -49,8 +48,9 @@ spec:
     params:
     - name: url
       value: https://github.com/openshift/boilerplate
+    # Pin until https://github.com/openshift/boilerplate/pull/866 merges, then revert to master.
     - name: revision
-      value: master
+      value: 9fe5a4235d443a9e50352252ef415ee1bfe00bb8
     - name: pathInRepo
       value: pipelines/docker-build-oci-ta/pipeline.yaml
 status: {}
