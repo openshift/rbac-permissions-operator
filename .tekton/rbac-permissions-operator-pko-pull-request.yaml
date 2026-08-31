@@ -30,6 +30,12 @@ spec:
   # skip-preflight-cert-check: Required for internal registry with self-signed certs in CI
   - name: skip-preflight-cert-check
     value: "true"
+  # skip-checks: PKO image is FROM scratch (YAML only). Boilerplate's docker-build-oci-ta
+  # pipeline swapped clair-scan for roxctl-scan (ACS) on 2026-08-28; ACS fails on
+  # scratch package images (no OS / no RPM content). Skipping image scans here is the
+  # same class of workaround as skip-preflight-cert-check.
+  - name: skip-checks
+    value: "true"
   - name: image-expires-after
     value: 3d
   taskRunTemplate:
