@@ -16,19 +16,18 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/osde2e-common/pkg/clients/openshift"
-	. "github.com/openshift/osde2e-common/pkg/gomega/assertions"
-	. "github.com/openshift/osde2e-common/pkg/gomega/matchers"
 	managedv1alpha1 "github.com/openshift/rbac-permissions-operator/api/v1alpha1"
 	"github.com/openshift/rbac-permissions-operator/config"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 	var (
-		client                *openshift.Client
+		client                *E2EClient
 		namespace             = config.OperatorNamespace
 		deploymentName        = config.OperatorName
 		configMapLockfileName = deploymentName + "-lock"
@@ -36,10 +35,8 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 	ginkgo.BeforeAll(func() {
 		log.SetLogger(ginkgo.GinkgoLogr)
 		var err error
-		client, err = openshift.New(ginkgo.GinkgoLogr)
-		Expect(err).ShouldNot(HaveOccurred(), "resources.New error")
-		err = managedv1alpha1.AddToScheme(client.GetScheme())
-		Expect(err).ShouldNot(HaveOccurred(), "unable to register scheme")
+		client, err = NewE2EClient(ginkgo.GinkgoLogr, WithScheme(managedv1alpha1.AddToScheme))
+		Expect(err).ShouldNot(HaveOccurred(), "NewE2EClient error")
 	})
 
 	ginkgo.It("is installed", func(ctx context.Context) {
@@ -60,7 +57,18 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred(), "clusterrolebinding %s not found", deploymentName)
 
 		ginkgo.By("checking the deployment is available")
-		EventuallyDeployment(ctx, client, deploymentName, namespace).Should(BeAvailable())
+		Eventually(ctx, func(ctx context.Context) (bool, error) {
+			var dep appsv1.Deployment
+			if err := client.Get(ctx, deploymentName, namespace, &dep); err != nil {
+				return false, err
+			}
+			for _, cond := range dep.Status.Conditions {
+				if cond.Type == appsv1.DeploymentAvailable && cond.Status == corev1.ConditionTrue {
+					return true, nil
+				}
+			}
+			return false, nil
+		}).Should(BeTrue(), "deployment %s/%s should be available", namespace, deploymentName)
 	})
 
 	ginkgo.It("reconciles subjectpermissions", func(ctx context.Context) {
@@ -87,7 +95,7 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		// Create SubjectPermission test fixture
 		ginkgo.By("Creating SubjectPermission test fixture " + spName)
 		existingSP := &managedv1alpha1.SubjectPermission{}
-		if err := client.WithNamespace(namespace).Get(ctx, spName, namespace, existingSP); err != nil {
+		if err := client.Get(ctx, spName, namespace, existingSP); err != nil {
 			if !apierrors.IsNotFound(err) {
 				ginkgo.Fail(fmt.Sprintf("Failed to check for existing SubjectPermission: %v", err))
 			}
@@ -95,7 +103,7 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			ginkgo.By("Cleaning up leftover SubjectPermission " + spName)
 			Expect(client.Delete(ctx, existingSP)).Should(Succeed(), "Failed to delete leftover SubjectPermission")
 			Eventually(func(g Gomega) {
-				err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &managedv1alpha1.SubjectPermission{})
+				err := client.Get(ctx, spName, namespace, &managedv1alpha1.SubjectPermission{})
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), fmt.Sprintf("unexpected error: %v", err))
 			}).WithTimeout(30 * time.Second).WithPolling(2 * time.Second).Should(Succeed())
 		}
@@ -141,7 +149,18 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 			},
 		}
 		ginkgo.By("Verifying operator deployment is ready and stable")
-		EventuallyDeployment(ctx, client, deploymentName, namespace).Should(BeAvailable())
+		Eventually(ctx, func(ctx context.Context) (bool, error) {
+			var dep appsv1.Deployment
+			if err := client.Get(ctx, deploymentName, namespace, &dep); err != nil {
+				return false, err
+			}
+			for _, cond := range dep.Status.Conditions {
+				if cond.Type == appsv1.DeploymentAvailable && cond.Status == corev1.ConditionTrue {
+					return true, nil
+				}
+			}
+			return false, nil
+		}).Should(BeTrue(), "deployment %s/%s should be available", namespace, deploymentName)
 		// Allow controller-runtime informer to complete initial list/watch sync.
 		// The CI image deployment may have experienced ImagePullBackOff, leaving
 		// the operator pod only seconds old at this point.
@@ -169,12 +188,12 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		ginkgo.By("Waiting for SubjectPermission to be reconciled")
 		Eventually(func(g Gomega) {
 			var reconciled managedv1alpha1.SubjectPermission
-			err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &reconciled)
+			err := client.Get(ctx, spName, namespace, &reconciled)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			if len(reconciled.Status.Conditions) == 0 {
 				// Diagnostic: log operator pod status to aid debugging timeouts.
 				var pods corev1.PodList
-				if listErr := client.WithNamespace(namespace).List(ctx, &pods); listErr == nil {
+				if listErr := client.List(ctx, &pods, crclient.InNamespace(namespace)); listErr == nil {
 					for i := range pods.Items {
 						pod := &pods.Items[i]
 						if !strings.HasPrefix(pod.Name, deploymentName) {
@@ -208,28 +227,41 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 		})
 
 		var allClusterRoles rbacv1.ClusterRoleList
-		err = client.WithNamespace(testNamespaceName).List(ctx, &allClusterRoles)
+		err = client.List(ctx, &allClusterRoles)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterroles")
 		ginkgo.By("Checking cluterroles in " + testNamespaceName)
 		for _, clusterRoleName := range clusterRoles {
-			Expect(&allClusterRoles).Should(ContainItemWithPrefix(clusterRoleName), "subjectpermission clusterrole - "+clusterRoleName+" was not found for "+spName)
+			found := false
+			for i := range allClusterRoles.Items {
+				if strings.HasPrefix(allClusterRoles.Items[i].Name, clusterRoleName) {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "subjectpermission clusterrole - "+clusterRoleName+" was not found for "+spName)
 		}
 
 		var allClusterRoleBindings rbacv1.ClusterRoleBindingList
-		err = client.WithNamespace(testNamespaceName).List(ctx, &allClusterRoleBindings)
+		err = client.List(ctx, &allClusterRoleBindings)
 		Expect(err).ShouldNot(HaveOccurred(), "failed to list clusterrolebindings")
 		ginkgo.By("Checking cluterrolebindings in " + testNamespaceName)
 		for _, clusterRoleBindingName := range clusterRoleBindings {
-			Expect(&allClusterRoleBindings).Should(ContainItemWithPrefix(clusterRoleBindingName), "subjectpermissions clusterrolebinding - "+clusterRoleBindingName+" was not found for "+spName)
+			found := false
+			for i := range allClusterRoleBindings.Items {
+				if strings.HasPrefix(allClusterRoleBindings.Items[i].Name, clusterRoleBindingName) {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "subjectpermissions clusterrolebinding - "+clusterRoleBindingName+" was not found for "+spName)
 		}
 
 		ginkgo.By("Checking rolebindings in " + testNamespaceName)
 		for _, roleBindingName := range roleBindings {
-			// can not use "ContainItemWithPrefix" matcher as is, because 120 second polling is needed
 			// rolebinding is observed to take a bit more time to create especially if the operator has just been upgraded
 			Eventually(ctx, func(ctx context.Context) (bool, error) {
 				var allRoleBindings rbacv1.RoleBindingList
-				err = client.WithNamespace(testNamespaceName).List(ctx, &allRoleBindings)
+				err = client.List(ctx, &allRoleBindings, crclient.InNamespace(testNamespaceName))
 				for _, nsRoleBinding := range allRoleBindings.Items {
 					if strings.HasPrefix(nsRoleBinding.Name, roleBindingName) {
 						return true, nil
@@ -243,9 +275,9 @@ var _ = ginkgo.Describe("rbac-permissions-operator", ginkgo.Ordered, func() {
 	})
 })
 
-func getSubjectPermissionRBACInfo(ctx context.Context, client *openshift.Client, namespace string, spName string) ([]string, []string, []string) {
+func getSubjectPermissionRBACInfo(ctx context.Context, client *E2EClient, namespace string, spName string) ([]string, []string, []string) {
 	var us managedv1alpha1.SubjectPermission
-	err := client.WithNamespace(namespace).Get(ctx, spName, namespace, &us)
+	err := client.Get(ctx, spName, namespace, &us)
 	Expect(err).ShouldNot(HaveOccurred(), "unable to get subjectpermission")
 
 	clusterRoles := us.Spec.ClusterPermissions
