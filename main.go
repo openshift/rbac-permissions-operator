@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"time"
@@ -35,11 +36,13 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -109,6 +112,18 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "bd14765d.openshift.io",
+		// Do not cache RoleBindings. The operator only checks whether a specific
+		// RoleBinding exists before creating it; a cluster-wide RoleBinding informer
+		// would cache every RoleBinding in every namespace (tens of thousands on a
+		// large cluster) for no benefit. Disabling the cache for this type routes
+		// RoleBinding reads directly to the API server as targeted calls.
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&rbacv1.RoleBinding{},
+				},
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -117,14 +132,14 @@ func main() {
 
 	// Ensure lock for leader election
 	_, err = k8sutil.GetOperatorNamespace()
-	switch err {
-	case nil:
+	switch {
+	case err == nil:
 		err = leader.Become(context.TODO(), "rbac-permissions-operator-lock")
 		if err != nil {
 			setupLog.Error(err, "failed to create leader lock")
 			os.Exit(1)
 		}
-	case k8sutil.ErrRunLocal, k8sutil.ErrNoNamespace:
+	case errors.Is(err, k8sutil.ErrRunLocal), errors.Is(err, k8sutil.ErrNoNamespace):
 		setupLog.Info("Skipping leader election; not running in a cluster.")
 	default:
 		setupLog.Error(err, "Failed to get operator namespace")
