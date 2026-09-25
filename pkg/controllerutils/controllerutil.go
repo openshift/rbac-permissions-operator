@@ -45,6 +45,22 @@ func PopulateCrPermissionClusterRoleNames(subjectPermission *managedv1alpha1.Sub
 	return result
 }
 
+// NamespaceMatchesPermission reports whether a single namespace name is allowed
+// by a permission's allow/deny regex pair, using the same allow-then-deny
+// semantics as GenerateSafeList (allow must match, deny must not match). It
+// exists so callers that only care about one namespace (e.g. the Namespace
+// controller reconciling a single created namespace) can avoid materializing and
+// scanning the entire namespace list.
+func NamespaceMatchesPermission(namespaceName, allowedRegex, deniedRegex string) bool {
+	if !regexp.MustCompile(allowedRegex).MatchString(namespaceName) {
+		return false
+	}
+	if deniedRegex != "" && regexp.MustCompile(deniedRegex).MatchString(namespaceName) {
+		return false
+	}
+	return true
+}
+
 // GenerateSafeList by 1st checking allow regex then check denied regex
 func GenerateSafeList(allowedRegex string, deniedRegex string, nsList *corev1.NamespaceList) []string {
 	safeList := allowedNamespacesList(allowedRegex, nsList)
@@ -59,11 +75,12 @@ func GenerateSafeList(allowedRegex string, deniedRegex string, nsList *corev1.Na
 func allowedNamespacesList(allowedRegex string, nsList *corev1.NamespaceList) []string {
 	var matches []string
 
+	// compile the regex once, not once per namespace
+	rp := regexp.MustCompile(allowedRegex)
+
 	// for every namespace on the cluster
 	// check that against the allowedRegex in Permission
 	for _, namespace := range nsList.Items {
-		rp := regexp.MustCompile(allowedRegex)
-
 		// if namespace on cluster matches with regex, append them to slice
 		found := rp.MatchString(namespace.Name)
 		if found {
@@ -81,11 +98,12 @@ func safeListAfterDeniedRegex(namespacesDeniedRegex string, safeList []string) [
 	}
 	var updatedSafeList []string
 
+	// compile the regex once, not once per namespace
+	rp := regexp.MustCompile(namespacesDeniedRegex)
+
 	// for every namespace on SafeList
 	// check that against deniedRegex
 	for _, namespace := range safeList {
-		rp := regexp.MustCompile(namespacesDeniedRegex)
-
 		found := rp.MatchString(namespace)
 		// if it does not match then append
 		if !found {

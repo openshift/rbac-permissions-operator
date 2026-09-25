@@ -226,15 +226,18 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 		return ctrl.Result{}, err
 	}
 
-	// eliminate terminating and non existing Namespace from the nsList.Items
+	// eliminate terminating and non existing Namespace from nsList.Items in place,
+	// reusing the backing array instead of allocating a second full NamespaceList.
 	newNsList := corev1.NamespaceList{}
+	filtered := nsList.Items[:0]
 	for i := range nsList.Items {
 		if controllerutil.ValidateNamespace(&nsList.Items[i]) {
-			newNsList.Items = append(newNsList.Items, nsList.Items[i])
+			filtered = append(filtered, nsList.Items[i])
 		} else {
 			reqLogger.Info(fmt.Sprintf("Namespace '%s' doesn't exist or in terminating state", nsList.Items[i].Name))
 		}
 	}
+	newNsList.Items = filtered
 
 	if len(instance.Spec.Permissions) != 0 {
 		var CreatedRoleBindingCount int
@@ -261,19 +264,26 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 			var namespaceCount int
 			// for each safelisted namespace
 			for _, ns := range safeList {
-				// get a list of all rolebindings in namespace
-				rbList := &v1.RoleBindingList{}
-				opts := []client.ListOption{
-					client.InNamespace(ns),
-				}
-				// TODO: Check error
-				_ = r.List(ctx, rbList, opts...)
-
-				// create roleBinding
+				// build the desired roleBinding
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, instance.Spec.SubjectName, instance.Spec.SubjectNamespace, instance.Spec.SubjectKind, ns)
+
+				// Existence check via a direct API read (RoleBindings are excluded from
+				// the cache in main.go, so this Get never builds a RoleBinding informer).
+				// If it already exists, skip.
+				existing := &v1.RoleBinding{}
+				getErr := r.Get(ctx, client.ObjectKey{Namespace: ns, Name: roleBinding.Name}, existing)
+				if getErr == nil {
+					// already present, nothing to do
+					continue
+				}
+				if !k8serr.IsNotFound(getErr) {
+					reqLogger.Error(getErr, "Failed to check RoleBinding existence", "name", roleBinding.Name, "namespace", ns)
+					return ctrl.Result{}, fmt.Errorf("failed to check RoleBinding %s in namespace %s: %w", roleBinding.Name, ns, getErr)
+				}
 
 				err := r.Create(ctx, roleBinding)
 				if err != nil {
+					// Create is the authoritative, race-safe check; tolerate a concurrent create.
 					if k8serr.IsAlreadyExists(err) {
 						continue
 					}
