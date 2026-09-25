@@ -36,7 +36,7 @@ hooks = [
 repo = "https://github.com/golangci/golangci-lint"
 rev = "v2.7.2"
 hooks = [
-  { id = "golangci-lint", args = [
+  { id = "golangci-lint", language_version = "1.26.0", args = [
     "--config=boilerplate/openshift/golang-osd-operator/golangci.yml",
     "--timeout=120s"
   ] },

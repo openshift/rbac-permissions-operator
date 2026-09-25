@@ -85,6 +85,44 @@ var _ = Describe("Controller Utils Tests", func() {
 		})
 	})
 
+	Context("Running NamespaceMatchesPermission", func() {
+
+		It("Should match when the namespace is allowed and not denied", func() {
+			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, testconst.TestEmptyDeniedList)).To(BeTrue())
+		})
+
+		It("Should not match when the namespace is denied", func() {
+			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, "default")).To(BeFalse())
+		})
+
+		It("Should not match when the namespace does not match the allow regex", func() {
+			Expect(NamespaceMatchesPermission("not-allowed-name", "^only-this$", testconst.TestEmptyDeniedList)).To(BeFalse())
+		})
+
+		It("Should be equivalent to GenerateSafeList membership for each namespace", func() {
+			// For every namespace in the list, matching it directly must agree with
+			// whether GenerateSafeList (the whole-list scan) includes it. This proves
+			// the Namespace controller's single-name match is behavior-preserving.
+			allowed := testconst.TestDefaultAllowedList
+			denied := "default"
+			safeList := GenerateSafeList(allowed, denied, testconst.TestNamespaceList)
+			inSafeList := func(name string) bool {
+				for _, n := range safeList {
+					if n == name {
+						return true
+					}
+				}
+				return false
+			}
+			for _, nsItem := range testconst.TestNamespaceList.Items {
+				Expect(NamespaceMatchesPermission(nsItem.Name, allowed, denied)).To(
+					Equal(inSafeList(nsItem.Name)),
+					"mismatch for namespace %q", nsItem.Name,
+				)
+			}
+		})
+	})
+
 	Context("Running NewRoleBindingForClusterRole", func() {
 
 		It("Should return the expected rolebinding", func() {
