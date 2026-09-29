@@ -34,7 +34,7 @@ hooks = [
 # golangci-lint static analysis
 [[repos]]
 repo = "https://github.com/golangci/golangci-lint"
-rev = "v2.7.2"
+rev = "v2.11.0"
 hooks = [
   { id = "golangci-lint", language_version = "1.26.0", args = [
     "--config=boilerplate/openshift/golang-osd-operator/golangci.yml",

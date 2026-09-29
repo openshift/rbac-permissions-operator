@@ -277,8 +277,8 @@ func (r *SubjectPermissionReconciler) Reconcile(ctx context.Context, request ctr
 					continue
 				}
 				if !k8serr.IsNotFound(getErr) {
-					reqLogger.Error(getErr, "Failed to check RoleBinding existence", "name", roleBinding.Name, "namespace", ns)
-					return ctrl.Result{}, fmt.Errorf("failed to check RoleBinding %s in namespace %s: %w", roleBinding.Name, ns, getErr)
+					reqLogger.Error(getErr, "Failed to check RoleBinding existence")
+					return ctrl.Result{}, fmt.Errorf("failed to check RoleBinding existence in namespace %s: %w", ns, getErr)
 				}
 
 				err := r.Create(ctx, roleBinding)

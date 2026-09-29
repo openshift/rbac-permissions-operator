@@ -139,9 +139,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Creates new rolebinding and updates status condition", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
 						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",
@@ -219,12 +222,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Does not update SubjectPermission status", func() {
-				alreadyExists := k8serr.NewAlreadyExists(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "testClusterRoleName-exampleSubjectName")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					// Create returns AlreadyExists; nothing is created, so no Status().Update() expected
-					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1).Return(alreadyExists),
+					// RoleBinding existence check succeeds (already present), so no Create and
+					// no Status().Update() are expected.
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred(), "namespace reconciliation failed when all RoleBindings already existed")
@@ -289,9 +292,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Should report failure", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("fake error")),
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
@@ -336,9 +342,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Should report failure", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
 						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",

@@ -88,15 +88,18 @@ var _ = Describe("Controller Utils Tests", func() {
 	Context("Running NamespaceMatchesPermission", func() {
 
 		It("Should match when the namespace is allowed and not denied", func() {
-			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, testconst.TestEmptyDeniedList)).To(BeTrue())
+			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, testconst.TestEmptyDeniedList)).To(
+				BeTrue(), "namespace matching the allow regex with an empty deny regex should match")
 		})
 
 		It("Should not match when the namespace is denied", func() {
-			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, "default")).To(BeFalse())
+			Expect(NamespaceMatchesPermission("default", testconst.TestDefaultAllowedList, "default")).To(
+				BeFalse(), "namespace matching the deny regex should not match even when it matches the allow regex")
 		})
 
 		It("Should not match when the namespace does not match the allow regex", func() {
-			Expect(NamespaceMatchesPermission("not-allowed-name", "^only-this$", testconst.TestEmptyDeniedList)).To(BeFalse())
+			Expect(NamespaceMatchesPermission("not-allowed-name", "^only-this$", testconst.TestEmptyDeniedList)).To(
+				BeFalse(), "namespace not matching the allow regex should not match")
 		})
 
 		It("Should be equivalent to GenerateSafeList membership for each namespace", func() {

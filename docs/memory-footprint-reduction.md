@@ -151,10 +151,18 @@ if controllerutil.NamespaceMatchesPermission(instance.Name,
 that, for every namespace in a list, the single-name match agrees with
 `GenerateSafeList` membership — i.e. it is provably behavior-preserving.
 
-**Behavior-preservation detail:** on `IsAlreadyExists` from `Create`, we do **not** set
-`bindingCreated = true`. This mirrors the previous behavior where an already-existing
-binding was skipped without triggering a SubjectPermission status update (avoiding an
-unnecessary reconcile of the other controller).
+Before creating, the controller does the **same targeted `Get` existence check** as the
+SubjectPermission controller (section 2). This matters on operator restart: the Namespace
+informer replays every existing namespace as a create event, so without the check the
+controller would attempt a `Create` for every already-present RoleBinding — thousands of
+avoidable `AlreadyExists` writes on a large cluster. The check turns those into cheap
+reads, and `Create` still tolerates `IsAlreadyExists` for the create-vs-create race.
+
+**Behavior-preservation detail:** when the RoleBinding already exists (existence `Get`
+succeeds, or `Create` returns `IsAlreadyExists`), we do **not** set `bindingCreated =
+true`. This mirrors the previous behavior where an already-existing binding was skipped
+without triggering a SubjectPermission status update (avoiding an unnecessary reconcile of
+the other controller).
 
 ### 4. Drop the redundant NamespaceList copy (`subjectpermission_controller.go`)
 

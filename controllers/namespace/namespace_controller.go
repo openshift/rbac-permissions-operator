@@ -97,16 +97,34 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectNamespace, subPerm.Spec.SubjectKind, instance.Name)
 
+				// Existence check via a direct API read (RoleBindings are excluded from
+				// the cache in main.go, so this Get never builds a RoleBinding informer).
+				// On operator restart the Namespace informer replays every existing
+				// namespace as a create event; without this check we would attempt a
+				// Create for every already-present RoleBinding, producing thousands of
+				// avoidable AlreadyExists writes on a large cluster. Mirrors the
+				// SubjectPermission controller.
+				existing := &v1.RoleBinding{}
+				getErr := r.Get(ctx, client.ObjectKey{Namespace: instance.Name, Name: roleBinding.Name}, existing)
+				if getErr == nil {
+					// Already present: nothing to create, so do not flag a status update
+					// (mirrors the previous "already exists -> skip" behavior that avoided
+					// unnecessary SubjectPermission reconciliation).
+					continue
+				}
+				if !k8serr.IsNotFound(getErr) {
+					reqLogger.Error(getErr, "Failed to check RoleBinding existence")
+					return ctrl.Result{}, fmt.Errorf("failed to check RoleBinding existence in namespace %s: %w", instance.Name, getErr)
+				}
+
 				err := r.Create(ctx, roleBinding)
 				if err != nil {
+					// Create is the authoritative, race-safe check; tolerate a concurrent create.
 					if k8serr.IsAlreadyExists(err) {
-						// Already present: nothing was created, so do not flag a status
-						// update (mirrors the previous "already exists -> skip" behavior
-						// that avoided unnecessary SubjectPermission reconciliation).
 						continue
 					}
-					reqLogger.Error(err, "Failed to create RoleBinding", "name", roleBinding.Name, "namespace", instance.Name)
-					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding %s in namespace %s: %w", roleBinding.Name, instance.Name, err)
+					reqLogger.Error(err, "Failed to create RoleBinding")
+					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding in namespace %s: %w", instance.Name, err)
 				}
 				bindingCreated = true
 				reqLogger.Info("RoleBinding created successfully", "clusterRole", permission.ClusterRoleName, "namespace", instance.Name)
