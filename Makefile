@@ -18,6 +18,7 @@ GOLANGCI_LINT_VERSION := 2.14.0
 go-check:
 	@GOOS=$$(go env GOOS); \
 	if ! golangci-lint version 2>/dev/null | grep -q "$(GOLANGCI_LINT_VERSION)"; then \
+		mkdir -p "$$(go env GOPATH)/bin"; \
 		curl -sfL "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)/golangci-lint-$(GOLANGCI_LINT_VERSION)-$${GOOS}-amd64.tar.gz" \
 			| tar -C "$$(go env GOPATH)/bin" -zx --strip-components=1 "golangci-lint-$(GOLANGCI_LINT_VERSION)-$${GOOS}-amd64/golangci-lint"; \
 	fi
