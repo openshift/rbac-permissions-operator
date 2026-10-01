@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"os"
 	"time"
@@ -117,14 +118,14 @@ func main() {
 
 	// Ensure lock for leader election
 	_, err = k8sutil.GetOperatorNamespace()
-	switch err {
-	case nil:
+	switch {
+	case err == nil:
 		err = leader.Become(context.TODO(), "rbac-permissions-operator-lock")
 		if err != nil {
 			setupLog.Error(err, "failed to create leader lock")
 			os.Exit(1)
 		}
-	case k8sutil.ErrRunLocal, k8sutil.ErrNoNamespace:
+	case errors.Is(err, k8sutil.ErrRunLocal), errors.Is(err, k8sutil.ErrNoNamespace):
 		setupLog.Info("Skipping leader election; not running in a cluster.")
 	default:
 		setupLog.Error(err, "Failed to get operator namespace")
