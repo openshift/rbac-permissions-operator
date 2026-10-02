@@ -70,13 +70,9 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("failed to get Namespace %s: %w", request.NamespacedName, err)
 	}
 
-	namespaceList := &corev1.NamespaceList{}
-	err = r.List(ctx, namespaceList)
-	if err != nil {
-		reqLogger.Error(err, "Failed to get namespaceList")
-		return ctrl.Result{}, fmt.Errorf("failed to list Namespaces: %w", err)
-	}
-
+	// The controller only reconciles the single namespace named in the request,
+	// so there is no need to list every namespace in the cluster. SubjectPermissions
+	// are few and are the objects we match against, so we still list them.
 	subjectPermissionList := &managedv1alpha1.SubjectPermissionList{}
 	err = r.List(ctx, subjectPermissionList)
 	if err != nil {
@@ -84,20 +80,9 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("failed to list SubjectPermissions: %w", err)
 	}
 
-	roleBindingList := &v1.RoleBindingList{}
-	// request.Name is the instance namespace we are reconciling
-	opts := []client.ListOption{
-		client.InNamespace(request.Name),
-	}
-	err = r.List(ctx, roleBindingList, opts...)
-	if err != nil {
-		reqLogger.Error(err, "Failed to get rolebindingList")
-		return ctrl.Result{}, fmt.Errorf("failed to list RoleBindings in namespace %s: %w", request.Name, err)
-	}
-
 	// loop through all subject permissions
 	// get namespaces allowed in each permission
-	// if our namespace instance is in the safeList, create rolebinding and update condition
+	// if our namespace instance matches the permission's regex, create rolebinding and update condition
 	for _, subjectPermission := range subjectPermissionList.Items {
 		subPerm := subjectPermission
 		var successfulClusterRoleNames []string
@@ -105,25 +90,41 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 		for _, permission := range subPerm.Spec.Permissions {
 			successfulClusterRoleNames = append(successfulClusterRoleNames, permission.ClusterRoleName)
 
-			// list of all namespaces in safelist
-			safeList := controllerutil.GenerateSafeList(permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex, namespaceList)
-			// if namespace is in safeList, create RoleBinding
-			if NamespaceInSlice(instance.Name, safeList) && controllerutil.ValidateNamespace(instance) {
+			// match this single namespace directly against the permission's regex
+			// (same allow-then-deny semantics as GenerateSafeList, without listing
+			// or scanning every namespace in the cluster)
+			if controllerutil.NamespaceMatchesPermission(instance.Name, permission.NamespacesAllowedRegex, permission.NamespacesDeniedRegex) && controllerutil.ValidateNamespace(instance) {
 
 				roleBinding := controllerutil.NewRoleBindingForClusterRole(permission.ClusterRoleName, subPerm.Spec.SubjectName, subPerm.Spec.SubjectNamespace, subPerm.Spec.SubjectKind, instance.Name)
-				// if rolebinding is already created in the namespace, continue to next iteration
-				if RolebindingInNamespace(roleBinding, roleBindingList) {
+
+				// Existence check via a direct API read (RoleBindings are excluded from
+				// the cache in main.go, so this Get never builds a RoleBinding informer).
+				// On operator restart the Namespace informer replays every existing
+				// namespace as a create event; without this check we would attempt a
+				// Create for every already-present RoleBinding, producing thousands of
+				// avoidable AlreadyExists writes on a large cluster. Mirrors the
+				// SubjectPermission controller.
+				existing := &v1.RoleBinding{}
+				getErr := r.Get(ctx, client.ObjectKey{Namespace: instance.Name, Name: roleBinding.Name}, existing)
+				if getErr == nil {
+					// Already present: nothing to create, so do not flag a status update
+					// (mirrors the previous "already exists -> skip" behavior that avoided
+					// unnecessary SubjectPermission reconciliation).
 					continue
+				}
+				if !k8serr.IsNotFound(getErr) {
+					reqLogger.Error(getErr, "Failed to check RoleBinding existence")
+					return ctrl.Result{}, fmt.Errorf("failed to check RoleBinding existence in namespace %s: %w", instance.Name, getErr)
 				}
 
 				err := r.Create(ctx, roleBinding)
 				if err != nil {
+					// Create is the authoritative, race-safe check; tolerate a concurrent create.
 					if k8serr.IsAlreadyExists(err) {
-						bindingCreated = true
 						continue
 					}
-					reqLogger.Error(err, "Failed to create RoleBinding", "name", roleBinding.Name, "namespace", instance.Name)
-					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding %s in namespace %s: %w", roleBinding.Name, instance.Name, err)
+					reqLogger.Error(err, "Failed to create RoleBinding")
+					return ctrl.Result{}, fmt.Errorf("failed to create RoleBinding in namespace %s: %w", instance.Name, err)
 				}
 				bindingCreated = true
 				reqLogger.Info("RoleBinding created successfully", "clusterRole", permission.ClusterRoleName, "namespace", instance.Name)
