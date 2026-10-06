@@ -30,10 +30,6 @@ var _ = Describe("Namespace Controller", func() {
 		namespaceReconciler       namespace.NamespaceReconciler
 		testNamespace             *corev1.Namespace
 		testSubjectPermissionList v1alpha1.SubjectPermissionList
-		testRoleBinding           *rbacv1.RoleBinding
-		testRoleBindingList       *rbacv1.RoleBindingList
-		ns                        string
-		safeList                  []string
 	)
 
 	BeforeEach(func() {
@@ -53,10 +49,6 @@ var _ = Describe("Namespace Controller", func() {
 			Spec:   corev1.NamespaceSpec{},
 			Status: corev1.NamespaceStatus{},
 		}
-		testRoleBinding = testconst.TestRoleBinding
-		testRoleBindingList = testconst.TestRoleBindingList
-		ns = testconst.TestNamespaceName.Name
-		safeList = []string{"test", "default"}
 	})
 
 	Context("Reconciling Namespace", func() {
@@ -209,17 +201,6 @@ var _ = Describe("Namespace Controller", func() {
 						},
 					},
 				}
-				// RoleBindingList already contains the expected binding
-				testRoleBindingList = &rbacv1.RoleBindingList{
-					Items: []rbacv1.RoleBinding{
-						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "testClusterRoleName-exampleSubjectName",
-								Namespace: testNamespace.Name,
-							},
-						},
-					},
-				}
 			})
 			It("Does not update SubjectPermission status", func() {
 				gomock.InOrder(
@@ -365,54 +346,6 @@ var _ = Describe("Namespace Controller", func() {
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).Should(HaveOccurred())
-			})
-		})
-	})
-
-	Context("Testing NamespaceInSlice function", func() {
-		When("Namespace is in the allowed list", func() {
-			It("Should return true", func() {
-				result := namespace.NamespaceInSlice(ns, safeList)
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		When("Namespace is not in the allowed list", func() {
-			BeforeEach(func() {
-				ns = "test"
-				safeList = []string{"default"}
-			})
-			It("Should return false", func() {
-				result := namespace.NamespaceInSlice(ns, safeList)
-				Expect(result).To(BeFalse())
-			})
-		})
-	})
-
-	Context("Testing RolebindingInNamespace function", func() {
-		When("RoleBinding is in the RoleBindingList", func() {
-			It("Should return true", func() {
-				result := namespace.RolebindingInNamespace(testRoleBinding, testRoleBindingList)
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		When("RoleBinding is not in the RoleBindingList", func() {
-			BeforeEach(func() {
-				testRoleBindingList = &rbacv1.RoleBindingList{
-					Items: []rbacv1.RoleBinding{
-						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "testPermissionCLusterRoleName-testGroupName",
-								Namespace: "test-namespace",
-							},
-						},
-					},
-				}
-			})
-			It("Should return false", func() {
-				result := namespace.RolebindingInNamespace(testRoleBinding, testRoleBindingList)
-				Expect(result).To(BeFalse())
 			})
 		})
 	})

@@ -146,29 +146,6 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, request ctrl.Reques
 
 }
 
-// check if namespace is in safeList
-func NamespaceInSlice(namespace string, safeList []string) bool {
-	for _, ns := range safeList {
-		if ns == namespace {
-			return true
-		}
-	}
-	return false
-}
-
-// check if rolebinding is already created in the namespace
-func RolebindingInNamespace(rolebinding *v1.RoleBinding, roleBindingList *v1.RoleBindingList) bool {
-	list := roleBindingList.Items
-	roleBindingName := rolebinding.Name
-
-	for _, rb := range list {
-		if rb.Name == roleBindingName {
-			return true
-		}
-	}
-	return false
-}
-
 // CreateOnlyPredicate filters namespace events to only accept create events.
 // The namespace controller's purpose is to create RoleBindings for newly
 // created namespaces. Update and delete events are irrelevant and would
