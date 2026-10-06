@@ -9,7 +9,9 @@ import (
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -27,12 +29,7 @@ var _ = Describe("Namespace Controller", func() {
 		mockStatusWriter          *clientmocks.MockStatusWriter
 		namespaceReconciler       namespace.NamespaceReconciler
 		testNamespace             *corev1.Namespace
-		testNamespaceList         *corev1.NamespaceList
 		testSubjectPermissionList v1alpha1.SubjectPermissionList
-		testRoleBinding           *rbacv1.RoleBinding
-		testRoleBindingList       *rbacv1.RoleBindingList
-		ns                        string
-		safeList                  []string
 	)
 
 	BeforeEach(func() {
@@ -52,25 +49,45 @@ var _ = Describe("Namespace Controller", func() {
 			Spec:   corev1.NamespaceSpec{},
 			Status: corev1.NamespaceStatus{},
 		}
-		testNamespaceList = testconst.TestNamespaceList
-		testRoleBinding = testconst.TestRoleBinding
-		testRoleBindingList = testconst.TestRoleBindingList
-		ns = testconst.TestNamespaceName.Name
-		safeList = []string{"test", "default"}
 	})
 
 	Context("Reconciling Namespace", func() {
 
 		When("Namespace is not in the safe list", func() {
+			BeforeEach(func() {
+				// A namespace that matches no permission's allow regex.
+				testNamespace = &corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "not-in-any-safelist",
+					},
+				}
+				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
+					Items: []v1alpha1.SubjectPermission{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "testSubjectPermission",
+								Namespace: "rbac-permissions-operator",
+							},
+							Spec: v1alpha1.SubjectPermissionSpec{
+								SubjectName: "exampleSubjectName",
+								SubjectKind: "exampleSubjectKind",
+								Permissions: []v1alpha1.Permission{
+									{
+										ClusterRoleName:        "testClusterRoleName",
+										NamespacesAllowedRegex: "^only-this-exact-name$",
+										NamespacesDeniedRegex:  "",
+									},
+								},
+							},
+						},
+					},
+				}
+			})
 			It("Does not update SubjectPermission status", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace(testNamespace.Name),
-					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
-					// No Status().Update() expected — no RoleBindings were created
+					// No Create() or Status().Update() expected — namespace matches no permission regex
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred())
@@ -79,13 +96,6 @@ var _ = Describe("Namespace Controller", func() {
 
 		When("Namespace is in the safe list", func() {
 			BeforeEach(func() {
-				testNamespaceList = &corev1.NamespaceList{
-					Items: []corev1.Namespace{
-						{
-							ObjectMeta: testNamespace.ObjectMeta,
-						},
-					},
-				}
 				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
 					Items: []v1alpha1.SubjectPermission{
 						{
@@ -121,13 +131,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Creates new rolebinding and updates status condition", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace(testNamespace.Name),
-					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
 						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",
@@ -159,13 +168,6 @@ var _ = Describe("Namespace Controller", func() {
 
 		When("All RoleBindings already exist in namespace", func() {
 			BeforeEach(func() {
-				testNamespaceList = &corev1.NamespaceList{
-					Items: []corev1.Namespace{
-						{
-							ObjectMeta: testNamespace.ObjectMeta,
-						},
-					},
-				}
 				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
 					Items: []v1alpha1.SubjectPermission{
 						{
@@ -199,27 +201,14 @@ var _ = Describe("Namespace Controller", func() {
 						},
 					},
 				}
-				// RoleBindingList already contains the expected binding
-				testRoleBindingList = &rbacv1.RoleBindingList{
-					Items: []rbacv1.RoleBinding{
-						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "testClusterRoleName-exampleSubjectName",
-								Namespace: testNamespace.Name,
-							},
-						},
-					},
-				}
 			})
 			It("Does not update SubjectPermission status", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace(testNamespace.Name),
-					}).Times(1).SetArg(1, *testRoleBindingList),
-					// No Create() or Status().Update() expected — all bindings already exist
+					// RoleBinding existence check succeeds (already present), so no Create and
+					// no Status().Update() are expected.
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil),
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).ToNot(HaveOccurred(), "namespace reconciliation failed when all RoleBindings already existed")
@@ -236,36 +225,11 @@ var _ = Describe("Namespace Controller", func() {
 			})
 		})
 
-		When("Not able to List the NamespaceList", func() {
-			It("Should report failure", func() {
-				gomock.InOrder(
-					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Return(fmt.Errorf("fake error")),
-				)
-				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
-				Expect(err).Should(HaveOccurred())
-			})
-		})
-
 		When("Not able to List the SubjectPermissionList", func() {
 			It("Should report failure", func() {
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Return(fmt.Errorf("fake error")),
-				)
-				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
-				Expect(err).Should(HaveOccurred())
-			})
-		})
-
-		When("Not able to List the RoleBindingList", func() {
-			It("Should report failure", func() {
-				gomock.InOrder(
-					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).SetArg(1, *testNamespaceList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("fake error")),
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
 				Expect(err).Should(HaveOccurred())
@@ -274,13 +238,6 @@ var _ = Describe("Namespace Controller", func() {
 
 		When("Not able to Create the RoleBinding", func() {
 			BeforeEach(func() {
-				testNamespaceList = &corev1.NamespaceList{
-					Items: []corev1.Namespace{
-						{
-							ObjectMeta: testNamespace.ObjectMeta,
-						},
-					},
-				}
 				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
 					Items: []v1alpha1.SubjectPermission{
 						{
@@ -316,13 +273,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Should report failure", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace(testNamespace.Name),
-					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("fake error")),
 				)
 				_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
@@ -332,13 +288,6 @@ var _ = Describe("Namespace Controller", func() {
 
 		When("Not able to Update status condition for successful RoleBinding creation", func() {
 			BeforeEach(func() {
-				testNamespaceList = &corev1.NamespaceList{
-					Items: []corev1.Namespace{
-						{
-							ObjectMeta: testNamespace.ObjectMeta,
-						},
-					},
-				}
 				testSubjectPermissionList = v1alpha1.SubjectPermissionList{
 					Items: []v1alpha1.SubjectPermission{
 						{
@@ -374,13 +323,12 @@ var _ = Describe("Namespace Controller", func() {
 				}
 			})
 			It("Should report failure", func() {
+				notFound := k8serr.NewNotFound(schema.GroupResource{Group: "rbac.authorization.k8s.io", Resource: "rolebindings"}, "")
 				gomock.InOrder(
 					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).SetArg(2, *testNamespace),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 					mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, testSubjectPermissionList),
-					mockClient.EXPECT().List(gomock.Any(), gomock.Any(), []client.ListOption{
-						client.InNamespace(testNamespace.Name),
-					}).Times(1).SetArg(1, *testconst.TestRoleBindingList),
+					// RoleBinding existence check returns NotFound, so a Create is attempted
+					mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(notFound),
 					mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
 						func(ctx context.Context, rb *rbacv1.RoleBinding, co ...client.CreateOption) error {
 							Expect(rb.ObjectMeta.Name).To(Equal(fmt.Sprintf("%s-%s",
@@ -402,61 +350,12 @@ var _ = Describe("Namespace Controller", func() {
 		})
 	})
 
-	Context("Testing NamespaceInSlice function", func() {
-		When("Namespace is in the allowed list", func() {
-			It("Should return true", func() {
-				result := namespace.NamespaceInSlice(ns, safeList)
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		When("Namespace is not in the allowed list", func() {
-			BeforeEach(func() {
-				ns = "test"
-				safeList = []string{"default"}
-			})
-			It("Should return false", func() {
-				result := namespace.NamespaceInSlice(ns, safeList)
-				Expect(result).To(BeFalse())
-			})
-		})
-	})
-
-	Context("Testing RolebindingInNamespace function", func() {
-		When("RoleBinding is in the RoleBindingList", func() {
-			It("Should return true", func() {
-				result := namespace.RolebindingInNamespace(testRoleBinding, testRoleBindingList)
-				Expect(result).To(BeTrue())
-			})
-		})
-
-		When("RoleBinding is not in the RoleBindingList", func() {
-			BeforeEach(func() {
-				testRoleBindingList = &rbacv1.RoleBindingList{
-					Items: []rbacv1.RoleBinding{
-						{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "testPermissionCLusterRoleName-testGroupName",
-								Namespace: "test-namespace",
-							},
-						},
-					},
-				}
-			})
-			It("Should return false", func() {
-				result := namespace.RolebindingInNamespace(testRoleBinding, testRoleBindingList)
-				Expect(result).To(BeFalse())
-			})
-		})
-	})
-
 	// Additional edge case test
 	When("SubjectPermissionList fails", func() {
 		It("Should return error", func() {
 			listError := fmt.Errorf("subjectpermission list failed")
 			gomock.InOrder(
 				mockClient.EXPECT().Get(gomock.Any(), testconst.TestNamespaceName, gomock.Any()).Times(1).SetArg(2, *testNamespace),
-				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).SetArg(1, *testNamespaceList),
 				mockClient.EXPECT().List(gomock.Any(), gomock.Any()).Times(1).Return(listError),
 			)
 			_, err := namespaceReconciler.Reconcile(testconst.Context, reconcile.Request{NamespacedName: testconst.TestNamespaceName})
