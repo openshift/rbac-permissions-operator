@@ -8,7 +8,7 @@ COPY . .
 RUN make go-build
 
 ####
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8-1791765279
+FROM registry.access.redhat.com/hi/core-runtime:2.43-openssl-fips
 
 ENV USER_UID=1001 \
     USER_NAME=rbac-permissions-operator
@@ -16,6 +16,7 @@ ENV USER_UID=1001 \
 COPY --from=builder /workdir/build/_output/bin/* /usr/local/bin/
 
 COPY build/bin /usr/local/bin
+USER 0
 RUN  /usr/local/bin/user_setup
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
